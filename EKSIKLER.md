@@ -113,10 +113,10 @@ BLM497 şablonları (Proje Önerisi, Gereksinimler Şartnamesi ve Ön Analiz, Ö
 - [ ] `TEZ-03` (P1) Doğrulama seti 46 örnek. `MODEL_RESULTS.md` de 150+ gerçek örnek öneriyor. Sınıf bazında precision ve recall, karışıklık matrisi, gecikme ve model boyutu kıyası eklenmeli. Araçlar hazır: `evaluate.py` modelleri yan yana ölçüyor (SVM 0.935, kurallar 0.435, 7.55 ms/metin; `--gemini`, `--json`). Doğrulama setini büyütmek için gerçek kullanıcı notları gerekiyor (`feedback_report --export`).
 - [x] `TEZ-04` (P1) Kullanıcının öneriyi kabul ya da reddetmesi kaydedilmiyor. Kaydedilirse modelin gerçek kullanımdaki doğruluğu ölçülebilir ve yeniden eğitimde kullanılabilir. Yapıldı: gösterilen öneri işlemle birlikte saklanıyor (migration 0005); `python -m ml_training.feedback_report` kabul oranı, kalibrasyon ve kategori bazında P/R veriyor, `--export` etiketli notları CSV'ye yazıyor.
 - [ ] `TEZ-05` (P2) Tahmin ve anomali yöntemleri ölçülmemiş. Geçmiş veride geriye dönük test (MAE, MAPE) ve eklenen anomalilerle precision/recall yapılabilir.
-- [ ] `TEZ-06` (P1) GŞÖA için UML çizimleri: use case, sınıf, sıra, durum makinesi, etkinlik.
-- [ ] `TEZ-07` (P1) ÖT için modül, veri ve arayüz ayrıştırması (arayüzler OpenAPI şemasından çıkarılabilir).
+- [x] `TEZ-06` (P1) GŞÖA için UML çizimleri: use case, sınıf, sıra, durum makinesi, etkinlik. Yapıldı: `docs/uml.md` (11 Mermaid çizimi, hepsi Mermaid ile ayrıştırılarak doğrulandı).
+- [x] `TEZ-07` (P1) ÖT için modül, veri ve arayüz ayrıştırması (arayüzler OpenAPI şemasından çıkarılabilir). Yapıldı: `docs/tasarim.md` (genel yapı, modül ve veri ayrıştırma, API, algoritmalar, gereksinim izlenebilirliği).
 - [ ] `TEZ-08` (P1) İşlevsel olmayan gereksinimler için ölçülmüş değerler: kapasite, güvenilirlik, ölçeklenebilirlik (yük testi). GŞÖA'nın sürdürülebilirlik bölümü CI'ın nasıl kullanıldığını soruyor (`ALT-09`). Kısmen: kapasite ve ölçeklenebilirlik ölçüldü (`docs/performans.md`, `backend/tools/load_test.py`); güvenilirlik (hata/çalışma süresi) henüz ölçülmedi.
 - [ ] `TEZ-09` (P2) "Aktif koç" iddiasını destekleyen proaktif özellikler az: bildirim (`OZ-06`), bütçe kaydırma önerisi, risk skoru, "farz et ki" senaryosu.
-- [ ] `TEZ-10` (P2) Test bölümü için test sonuçları ve kapsam (coverage) raporu (`ALT-07`, `ALT-08`).
+- [x] `TEZ-10` (P2) Test bölümü için test sonuçları ve kapsam (coverage) raporu (`ALT-07`, `ALT-08`). Yapıldı: `docs/testler.md` (109 durum, kapsam %96, OWASP eşleşmesi, bilinen eksikler).
 - [ ] `TEZ-11` (P1) Jüri demosu için kararlı bir ortam: HTTPS'li bir sunucu ya da yerel demo için yazılı bir yedek plan.
 - [ ] `TEZ-12` (P1) Pilotta gerçek finans verisi toplanacaksa aydınlatma metni ve açık rıza gerekir. Etik kurul onayı gerekip gerekmediği danışmana sorulmalı.

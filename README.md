@@ -11,7 +11,16 @@ Flutter (mobile/)  --REST/JSON-->  FastAPI (backend/)  -->  SQLite (backend/expe
                                         +--> Google Gemini API (isteğe bağlı)
 ```
 
-Bilinen eksikler ve yapılacaklar listesi [EKSIKLER.md](EKSIKLER.md) dosyasında. Model deneyleri ve sonuçları [backend/ml_training/MODEL_RESULTS.md](backend/ml_training/MODEL_RESULTS.md) dosyasında.
+## Belgeler
+
+| Belge | İçerik |
+|---|---|
+| [docs/tasarim.md](docs/tasarim.md) | Modüller, veri yapıları, API, algoritmalar, gereksinim izlenebilirliği |
+| [docs/uml.md](docs/uml.md) | Kullanım durumu, sınıf, sıra, durum makinesi ve etkinlik çizimleri |
+| [docs/testler.md](docs/testler.md) | Test kapsamı ve OWASP eşleşmesi |
+| [docs/performans.md](docs/performans.md) | Yük testi ölçümleri |
+| [backend/ml_training/MODEL_RESULTS.md](backend/ml_training/MODEL_RESULTS.md) | Kategori modeli deneyleri ve sonuçları |
+| [EKSIKLER.md](EKSIKLER.md) | Bilinen eksikler ve yapılacaklar |
 
 ## Gereksinimler
 
