@@ -143,6 +143,7 @@ class ApiClient {
     String note = '',
     String? occurredOn,
     bool isRecurring = false,
+    CategorySuggestion? shownSuggestion,
   }) async {
     final body = <String, dynamic>{
       'amount': amount,
@@ -152,6 +153,13 @@ class ApiClient {
     };
     if (category != null) body['category'] = category;
     if (occurredOn != null) body['occurred_on'] = occurredOn;
+    // Ekranda gösterilen öneri: seçilen kategoriyle karşılaştırılıp modelin gerçek
+    // kullanımdaki doğruluğu ölçülür (backend ml_training/feedback_report.py).
+    if (shownSuggestion != null) {
+      body['suggested_category'] = shownSuggestion.category;
+      body['suggestion_confidence'] = shownSuggestion.confidence;
+      body['suggestion_model'] = shownSuggestion.model;
+    }
     final r = await http.post(_u('/transactions'),
         headers: _headers, body: jsonEncode(body));
     if (r.statusCode >= 400) throw _err(r);

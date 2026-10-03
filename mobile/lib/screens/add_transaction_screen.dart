@@ -208,6 +208,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           category: _selectedCategory, // null → backend modelle/Diğer atar
           note: _note.text.trim(),
           isRecurring: _isRecurring,
+          // Öneri hâlâ yükleniyorsa (not değişmiş olabilir) gönderilmez.
+          shownSuggestion: !_isIncome && !_suggesting ? _suggestion : null,
         );
       }
       if (mounted) Navigator.of(context).pop(true);
