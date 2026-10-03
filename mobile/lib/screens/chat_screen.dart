@@ -15,17 +15,14 @@ class _Message {
   final bool isUser;
   final DateTime time;
 
-  _Message({
-    required this.text,
-    required this.isUser,
-    required this.time,
-  });
+  _Message({required this.text, required this.isUser, required this.time});
 }
 
 class _ChatScreenState extends State<ChatScreen> {
   final List<_Message> _messages = [
     _Message(
-      text: "Merhaba! Ben Expenza Yapay Zekâ Asistanınız. Harcamalarınız, bütçe limitleriniz ve tasarruf hedeflerinizle ilgili sorularınızı yanıtlayabilirim. Nasıl yardımcı olabilirim?",
+      text:
+          "Merhaba! Ben Expenza Yapay Zekâ Asistanınız. Harcamalarınız, bütçe limitleriniz ve tasarruf hedeflerinizle ilgili sorularınızı yanıtlayabilirim. Nasıl yardımcı olabilirim?",
       isUser: false,
       time: DateTime.now(),
     ),
@@ -42,11 +39,14 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void initState() {
     super.initState();
-    ApiClient.instance.hasAiConsent().then((v) {
-      if (mounted) setState(() => _consent = v);
-    }).catchError((_) {
-      if (mounted) setState(() => _consent = false);
-    });
+    ApiClient.instance
+        .hasAiConsent()
+        .then((v) {
+          if (mounted) setState(() => _consent = v);
+        })
+        .catchError((_) {
+          if (mounted) setState(() => _consent = false);
+        });
   }
 
   Future<void> _giveConsent() async {
@@ -56,8 +56,9 @@ class _ChatScreenState extends State<ChatScreen> {
       if (mounted) setState(() => _consent = true);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(e.toString().replaceFirst('Exception: ', ''))));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+        );
       }
     } finally {
       if (mounted) setState(() => _savingConsent = false);
@@ -98,7 +99,9 @@ class _ChatScreenState extends State<ChatScreen> {
       final reply = await ApiClient.instance.sendChatMessage(text);
       if (mounted) {
         setState(() {
-          _messages.add(_Message(text: reply, isUser: false, time: DateTime.now()));
+          _messages.add(
+            _Message(text: reply, isUser: false, time: DateTime.now()),
+          );
         });
       }
     } catch (e) {
@@ -106,13 +109,15 @@ class _ChatScreenState extends State<ChatScreen> {
       final detail = e.toString().replaceFirst('Exception: ', '');
       if (mounted) {
         setState(() {
-          _messages.add(_Message(
-            text: detail.isNotEmpty
-                ? detail
-                : "Üzgünüm, asistan servisine bağlanırken bir hata oluştu. Lütfen tekrar deneyin.",
-            isUser: false,
-            time: DateTime.now(),
-          ));
+          _messages.add(
+            _Message(
+              text: detail.isNotEmpty
+                  ? detail
+                  : "Üzgünüm, asistan servisine bağlanırken bir hata oluştu. Lütfen tekrar deneyin.",
+              isUser: false,
+              time: DateTime.now(),
+            ),
+          );
         });
       }
     } finally {
@@ -152,8 +157,8 @@ class _ChatScreenState extends State<ChatScreen> {
               "Expenza AI",
               style: TextStyle(
                 color: AppColors.onSurface,
-                fontWeight: FontWeight.w700,
-                fontSize: 17,
+                fontWeight: FontWeight.w500,
+                fontSize: 19,
               ),
             ),
           ],
@@ -163,8 +168,8 @@ class _ChatScreenState extends State<ChatScreen> {
       body: _consent == null
           ? Center(child: CircularProgressIndicator(color: AppColors.outline))
           : _consent == false
-              ? _consentPanel()
-              : _chatBody(isDark),
+          ? _consentPanel()
+          : _chatBody(isDark),
     );
   }
 
@@ -175,11 +180,7 @@ class _ChatScreenState extends State<ChatScreen> {
       children: [
         Icon(Icons.privacy_tip_outlined, size: 40, color: AppColors.primary),
         const SizedBox(height: 16),
-        Text('Veri paylaşımı onayı',
-            style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: AppColors.onSurface)),
+        Text('Veri paylaşımı onayı', style: AppText.display(size: 30)),
         const SizedBox(height: 12),
         Text(
           'Expenza AI sorularını yanıtlarken Google Gemini hizmetini kullanır. '
@@ -188,22 +189,24 @@ class _ChatScreenState extends State<ChatScreen> {
           'Adın ve e-posta adresin gönderilmez.\n\n'
           'Onayını istediğin zaman Profil > Ayarlar bölümünden geri çekebilirsin.',
           style: TextStyle(
-              fontSize: 13.5, height: 1.55, color: AppColors.onSurfaceVariant),
+            fontSize: 16,
+            height: 1.55,
+            color: AppColors.onSurfaceVariant,
+          ),
         ),
         const SizedBox(height: 28),
         FilledButton(
           onPressed: _savingConsent ? null : _giveConsent,
-          style: FilledButton.styleFrom(
-            backgroundColor: AppColors.primary,
-            foregroundColor: AppColors.onPrimary,
-            minimumSize: const Size.fromHeight(50),
-          ),
+          style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(54)),
           child: Text(_savingConsent ? 'Kaydediliyor…' : 'Onaylıyorum'),
         ),
         const SizedBox(height: 8),
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: Text('Vazgeç', style: TextStyle(color: AppColors.outline)),
+          child: Text(
+            'Vazgeç',
+            style: TextStyle(color: AppColors.onSurfaceVariant),
+          ),
         ),
       ],
     );
@@ -220,7 +223,10 @@ class _ChatScreenState extends State<ChatScreen> {
             itemCount: _messages.length,
             itemBuilder: (context, idx) {
               final msg = _messages[idx];
-              return _chatBubble(msg);
+              // Yalnızca son mesaj belirerek gelir; kaydırınca eskiler yeniden oynamaz.
+              return idx == _messages.length - 1
+                  ? Rise(key: ValueKey(idx), child: _chatBubble(msg))
+                  : _chatBubble(msg);
             },
           ),
         ),
@@ -232,18 +238,14 @@ class _ChatScreenState extends State<ChatScreen> {
               alignment: Alignment.centerLeft,
               child: Row(
                 children: [
-                  SizedBox(
-                    width: 14,
-                    height: 14,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 1.5,
-                      color: AppColors.outline,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
+                  PingDot(color: AppColors.primary, size: 6),
+                  const SizedBox(width: 10),
                   Text(
-                    "Asistan yanıt yazıyor...",
-                    style: TextStyle(fontSize: 12, color: AppColors.outline),
+                    "Asistan yanıt yazıyor",
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppColors.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
@@ -258,7 +260,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Widget _chatBubble(_Message msg) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.only(bottom: 14),
       child: Align(
         alignment: msg.isUser ? Alignment.centerRight : Alignment.centerLeft,
         child: Container(
@@ -267,14 +269,12 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: msg.isUser
-                ? AppColors.primary
-                : AppColors.surfaceContainer,
+            color: msg.isUser ? AppColors.primary : AppColors.surface,
             borderRadius: BorderRadius.only(
-              topLeft: const Radius.circular(18),
-              topRight: const Radius.circular(18),
-              bottomLeft: Radius.circular(msg.isUser ? 18 : 4),
-              bottomRight: Radius.circular(msg.isUser ? 4 : 18),
+              topLeft: const Radius.circular(22),
+              topRight: const Radius.circular(22),
+              bottomLeft: Radius.circular(msg.isUser ? 22 : 6),
+              bottomRight: Radius.circular(msg.isUser ? 6 : 22),
             ),
             border: msg.isUser
                 ? null
@@ -284,7 +284,7 @@ class _ChatScreenState extends State<ChatScreen> {
             msg.text,
             style: TextStyle(
               color: msg.isUser ? AppColors.onPrimary : AppColors.onSurface,
-              fontSize: 13.5,
+              fontSize: 16,
               height: 1.45,
             ),
           ),
@@ -295,7 +295,12 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Widget _bottomBar(bool isDark) {
     return Container(
-      padding: EdgeInsets.fromLTRB(16, 12, 16, MediaQuery.of(context).padding.bottom + 12),
+      padding: EdgeInsets.fromLTRB(
+        16,
+        12,
+        16,
+        MediaQuery.of(context).padding.bottom + 12,
+      ),
       decoration: BoxDecoration(
         color: AppColors.background,
         border: Border(top: BorderSide(color: AppColors.glassBorder)),
@@ -305,18 +310,21 @@ class _ChatScreenState extends State<ChatScreen> {
           Expanded(
             child: Container(
               decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(24),
+                color: AppColors.surfaceBright,
+                borderRadius: BorderRadius.circular(AppRadius.pill),
                 border: Border.all(color: AppColors.glassBorder),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: TextField(
                 controller: _textController,
-                style: TextStyle(color: AppColors.onSurface, fontSize: 14),
+                style: TextStyle(color: AppColors.onSurface, fontSize: 17),
                 decoration: InputDecoration(
-                  hintText: "Asistana sorun...",
-                  hintStyle: TextStyle(color: AppColors.outline, fontSize: 14),
+                  hintText: "Asistana sor…",
+                  hintStyle: TextStyle(color: AppColors.outline, fontSize: 17),
+                  filled: false,
                   border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
                 ),
                 maxLines: null,
                 keyboardType: TextInputType.multiline,
@@ -325,11 +333,11 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
           const SizedBox(width: 8),
-          GestureDetector(
+          Press(
             onTap: _sendMessage,
             child: Container(
-              width: 44,
-              height: 44,
+              width: 48,
+              height: 48,
               decoration: BoxDecoration(
                 color: AppColors.primary,
                 shape: BoxShape.circle,
