@@ -52,7 +52,7 @@ class ExpenzaApp extends StatelessWidget {
               // çerçeveye alıp ortala; dar ekranlarda (telefon) tam genişlik.
               builder: (context, child) {
                 return ColoredBox(
-                  color: isDark ? const Color(0xFF0A0A0A) : const Color(0xFFE6E9EC),
+                  color: isDark ? const Color(0xFF151618) : const Color(0xFFE3DBCB),
                   child: Center(
                     child: ClipRect(
                       child: ConstrainedBox(
