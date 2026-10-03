@@ -66,7 +66,7 @@ Kimlik önekleri: `SEC` güvenlik, `HATA` işlev hatası, `ALT` altyapı ve belg
 
 ### Güvenlik
 
-- [ ] `SEC-09` Token 7 gün geçerli, refresh yok, çıkış sadece istemcide (`auth.py:19`, `api_client.dart:66`).
+- [x] `SEC-09` Token 7 gün geçerli, refresh yok, çıkış sadece istemcide (`auth.py:19`, `api_client.dart:66`). Düzeltildi: erişim token'ı 30 dakika; 30 günlük yenileme token'ı her kullanımda yenileniyor ve veritabanında SHA-256 özeti olarak tutuluyor (`app/sessions.py`, migration 0006). Kullanılmış bir yenileme token'ı tekrar gelirse o girişin bütün token'ları iptal ediliyor. Çıkış sunucuda oturumu kapatıyor (`POST /auth/logout`). Parola değişince oturum sürümü (`token_version`) arttığı için eski erişim token'ları hemen geçersiz oluyor.
 - [x] `SEC-11` Kayıt hatası e-postanın kayıtlı olduğunu söylüyor; girişte kullanıcı yoksa bcrypt çalışmadığı için cevap süresi farklı (`auth_router.py:16`, `33-38`). Kısmen: giriş artık kullanıcı yokken de bcrypt çalıştırıyor (zamanlama farkı yok). Kayıt ekranındaki "e-posta zaten kayıtlı" mesajı kullanıcı deneyimi için bırakıldı; kayıt istek sınırı bu ifşayı yavaşlatıyor.
 - [x] `SEC-12` Not, görünen ad, sohbet mesajı ve kategori metninde uzunluk sınırı yok; `limit` parametresi ve tutarlar için üst sınır yok. Düzeltildi: tutarlar en fazla 1 milyar, not 500 karakter, görünen ad 120, sohbet mesajı 1000, liste `limit` 1-500.
 - [x] `SEC-13` Demo hesabın bilgileri giriş ekranına gömülü (`login_screen.dart:16-17`). Yapılacak: önceden doldurmayı sadece debug derlemesine bağlamak, `seed_demo.py`'nin yayında çalışmasını engellemek. Düzeltildi: alanlar yalnızca debug derlemesinde dolu geliyor (`kDebugMode`); `seed_demo.py` SQLite dışında `--force` olmadan çalışmıyor.
@@ -79,28 +79,28 @@ Kimlik önekleri: `SEC` güvenlik, `HATA` işlev hatası, `ALT` altyapı ve belg
 ### Kod kalitesi
 
 - [ ] `KOD-01` Para `float` olarak saklanıyor (`models.py:66`). Kuruş cinsinden tam sayı ya da `Decimal` düşünülmeli.
-- [ ] `KOD-02` Kategori listesi en az altı yerde ayrı tutuluyor (`CategoryEnum`, `KEYWORDS`, `generate_data.DATA`, `kCategories`, profil metni, renk/ikon eşlemeleri). `Toplam` bir kategori değil, `CategoryEnum`'dan ayrılmalı; şu an API onu işlem kategorisi olarak da kabul ediyor.
+- [ ] `KOD-02` Kategori listesi en az altı yerde ayrı tutuluyor (`CategoryEnum`, `KEYWORDS`, `generate_data.DATA`, `kCategories`, profil metni, renk/ikon eşlemeleri). `Toplam` bir kategori değil, `CategoryEnum`'dan ayrılmalı; şu an API onu işlem kategorisi olarak da kabul ediyor. Kısmen: `GET /categories` listeyi backend'den veriyor (`ApiClient.getCategories()`); ekranların bunu kullanması ve `Toplam`'ın ayrılması kaldı.
 - [ ] `KOD-03` Ekran dosyaları 500-840 satır ve arayüz, API çağrısı ve iş kuralı aynı yerde. Backend'de iş kuralları router'larda; servis katmanı yok.
 - [x] `KOD-04` Kullanılmayan bağımlılıklar: `pydantic-settings`, çalışma zamanında `pandas` (sadece eğitimde gerekli), `provider`. Kullanılmayan kod: `ExpenzaAppBar` (`home_shell.dart:102`). Not: `cupertino_icons` önce kaldırıldı, sonra geri eklendi; uygulama kodu kullanmasa da Flutter'ın Cupertino bileşenleri bu fonta ihtiyaç duyuyor.
 - [x] `KOD-05` Gemini çağrısı iki ayrı yerde ve iki farklı model adıyla yazılmış (`chat.py`, `categorizer.py`). Tek modülde toplanmalı. Düzeltildi: tüm Gemini çağrıları `app/llm.py` üzerinden.
-- [ ] `KOD-06` Performans: tekrarlayan işlem üretimindeki N+1 sorgu ve satır başına commit; açılışta beş sekmenin birden yüklenmesi (3 kez `GET /transactions`); analitik uçlarının bütün işlemleri belleğe çekmesi; `chat.py`'de `async` fonksiyon içinde senkron veritabanı sorgusu; sayfalama olmaması. Tekrarlayan işlemdeki N+1, sohbetteki async/senkron sorunu ve analitik uçlarının bütün işlemleri belleğe alması giderildi (5.000 işlemde tahmin ucu p50 1154 ms'den 194 ms'ye indi). Açılıştaki tekrar eden istekler ve sayfalama açık.
+- [ ] `KOD-06` Performans: tekrarlayan işlem üretimindeki N+1 sorgu ve satır başına commit; açılışta beş sekmenin birden yüklenmesi (3 kez `GET /transactions`); analitik uçlarının bütün işlemleri belleğe çekmesi; `chat.py`'de `async` fonksiyon içinde senkron veritabanı sorgusu; sayfalama olmaması. Tekrarlayan işlemdeki N+1, sohbetteki async/senkron sorunu ve analitik uçlarının bütün işlemleri belleğe alması giderildi (5.000 işlemde tahmin ucu p50 1154 ms'den 194 ms'ye indi). Backend'de sayfalama var (`offset`). Açılıştaki tekrar eden istekler açık.
 - [x] `KOD-07` Güncel olmayan belgeler: `expenza_yol_haritasi.md` Go, PostgreSQL ve Riverpod anlatıyor; `categorizer.py` başındaki açıklama "STUB ile çalışır" diyor. Eski yol haritası kaldırıldı, `categorizer.py` açıklaması güncellendi.
 - [x] `KOD-08` `theme.dart:37` `\$e` yazdığı için döviz kuru hatasını basmıyor. Düzeltildi.
-- [ ] `KOD-09` Backend metinleri (içgörü, anomali nedeni, sohbet) para birimini ₺ olarak sabit yazıyor. Geçmiş tutarlar bugünkü kurla çevriliyor.
+- [ ] `KOD-09` Backend metinleri (içgörü, anomali nedeni, sohbet) para birimini ₺ olarak sabit yazıyor. Geçmiş tutarlar bugünkü kurla çevriliyor. Yeni uyarı metinlerinde tutar yok; tutar ayrı alanda dönüyor ve istemci kendi para biriminde gösteriyor. İçgörü ve anomali nedenleri hâlâ ₺ yazıyor.
 - [x] `KOD-10` `categorizer.py`'de `Optional` import edilmemiş; sadece `from __future__ import annotations` sayesinde hata vermiyor.
 
 ## P3: yeni özellikler ve yarım kalanlar
 
-- [ ] `OZ-01` Kalıcı oturum (güvenli depolama). Şu an token sadece bellekte.
-- [ ] `OZ-02` İşlem tarihi seçici. Backend `occurred_on` alanını destekliyor, arayüzde yok.
-- [ ] `OZ-03` Hedef son tarihi ve hedef düzenleme. Backend `deadline` alanını destekliyor, arayüzde yok.
+- [x] `OZ-01` Kalıcı oturum (güvenli depolama). Şu an token sadece bellekte. Yapıldı: yenileme token'ı `flutter_secure_storage` ile saklanıyor (Android Keystore, iOS Keychain, web'de WebCrypto); açılışta `restoreSession()` oturumu geri yüklüyor, bu sırada açılış ekranı (`splash_screen.dart`) görünüyor. `login(remember: false)` oturumu kaydetmiyor. Giriş ekranına "Beni hatırla" kutusu eklenecek.
+- [ ] `OZ-02` İşlem tarihi seçici. Backend `occurred_on` alanını destekliyor, arayüzde yok. Backend hazır: tarih yarından ileri ve 10 yıldan eski olamıyor, tekrarlayan işlem en fazla 12 ay önceden başlatılabiliyor. Ekran kaldı.
+- [ ] `OZ-03` Hedef son tarihi ve hedef düzenleme. Backend `deadline` alanını destekliyor, arayüzde yok. Backend hazır: `PUT /goals/{id}`, `POST /goals/{id}/withdraw`; hedef cevabında kalan gün ve ay, ayda ayrılması gereken tutar ve durum (Yolunda, Geride, Süresi geçti, Tamamlandı) var. Ekran kaldı.
 - [ ] `OZ-04` Sohbette Markdown gösterimi (şu an `**` gibi işaretler görünüyor) ve konuşma geçmişi. Kısmen: Gemini'den artık düz metin isteniyor, `**` işaretleri görünmüyor; konuşma geçmişi hâlâ yok.
-- [ ] `OZ-05` Şifre sıfırlama (şu an "yakında"), şifre değiştirme, hesap silme.
-- [ ] `OZ-06` Bütçe aşımı ve anomali için gerçek bildirim. Profildeki bildirim anahtarı şu an sadece görsel.
+- [ ] `OZ-05` Şifre sıfırlama (şu an "yakında"), şifre değiştirme, hesap silme. Backend hazır: `PUT /auth/me` (ad, uyarı tercihi), `POST /auth/change-password` (diğer cihazlardaki oturumları kapatır), `DELETE /auth/me` (parola onayıyla bütün verileri siler). Hatalı parola denemeleri girişle aynı sınıra tabi. E-postayla şifre sıfırlama e-posta altyapısı gerektirdiği için kapsam dışı; giriş ekranındaki bağlantı kaldırılmalı. Hesap ayarları ekranı kaldı.
+- [ ] `OZ-06` Bütçe aşımı ve anomali için gerçek bildirim. Profildeki bildirim anahtarı şu an sadece görsel. Backend hazır: işlem kaydedilince bütçe %80/%100 uyarısı dönüyor; `GET /alerts` bütçe, bütçe hızı, hedef, olağandışı harcama ve yaklaşan ödeme uyarılarını veriyor (`app/coach.py`); `POST /alerts/dismiss` kapatıyor; tercih `alerts_enabled` olarak saklanıyor. Uygulama içi uyarı ekranı ve ana sayfa rozeti kaldı. Telefon bildirimi (push) yok.
 - [ ] `OZ-07` PDF ve CSV dışa aktarma.
 - [x] `OZ-08` Tekrarlayan işlem arayüzü: gider için de seçilebilmesi, seriyi durdurma, ne yaptığını anlatan bir etiket ("Gelir kaydedilsin mi" yerine). Yapıldı: kutu giderde de görünüyor, etiketi "Her ay tekrarla"; işaret kaldırılınca seri duruyor, tutar/not düzenlemesi sonraki aylara geçiyor.
-- [ ] `OZ-09` Arayüzde ay filtresi ve sayfalama.
-- [ ] `OZ-10` Profildeki sabit öğeler: "Premium üye" etiketi, sürüm numarası, işlevsiz ayarlar ikonu.
+- [ ] `OZ-09` Arayüzde ay filtresi ve sayfalama. Backend hazır: `offset` parametresi, `GET /transactions/months` (ay listesi ve toplamları), `GET /transactions/summary?month=`. Ekran kaldı.
+- [ ] `OZ-10` Profildeki sabit öğeler: "Premium üye" etiketi, sürüm numarası, işlevsiz ayarlar ikonu. Veri hazır: `UserModel.createdAt` (üyelik tarihi), `appVersion`, `getCategories()`. Ekran kaldı.
 
 ---
 
@@ -116,7 +116,7 @@ BLM497 şablonları (Proje Önerisi, Gereksinimler Şartnamesi ve Ön Analiz, Ö
 - [x] `TEZ-06` (P1) GŞÖA için UML çizimleri: use case, sınıf, sıra, durum makinesi, etkinlik. Yapıldı: `docs/uml.md` (11 Mermaid çizimi, hepsi Mermaid ile ayrıştırılarak doğrulandı).
 - [x] `TEZ-07` (P1) ÖT için modül, veri ve arayüz ayrıştırması (arayüzler OpenAPI şemasından çıkarılabilir). Yapıldı: `docs/tasarim.md` (genel yapı, modül ve veri ayrıştırma, API, algoritmalar, gereksinim izlenebilirliği).
 - [ ] `TEZ-08` (P1) İşlevsel olmayan gereksinimler için ölçülmüş değerler: kapasite, güvenilirlik, ölçeklenebilirlik (yük testi). GŞÖA'nın sürdürülebilirlik bölümü CI'ın nasıl kullanıldığını soruyor (`ALT-09`). Kısmen: kapasite ve ölçeklenebilirlik ölçüldü (`docs/performans.md`, `backend/tools/load_test.py`); güvenilirlik (hata/çalışma süresi) henüz ölçülmedi.
-- [ ] `TEZ-09` (P2) "Aktif koç" iddiasını destekleyen proaktif özellikler az: bildirim (`OZ-06`), bütçe kaydırma önerisi, risk skoru, "farz et ki" senaryosu.
+- [ ] `TEZ-09` (P2) "Aktif koç" iddiasını destekleyen proaktif özellikler az: bildirim (`OZ-06`), bütçe kaydırma önerisi, risk skoru, "farz et ki" senaryosu. Kısmen: kayıt anında bütçe uyarısı, bütçenin bu hızla ayın kaçıncı günü dolacağının tahmini (tekrarlayan ödemeler günlük ortalamaya katılmadan), geride kalan ve süresi geçen hedefler, yaklaşan tekrarlayan ödemeler (`app/coach.py`). Bütçe kaydırma önerisi, risk skoru ve "farz et ki" yok.
 - [x] `TEZ-10` (P2) Test bölümü için test sonuçları ve kapsam (coverage) raporu (`ALT-07`, `ALT-08`). Yapıldı: `docs/testler.md` (109 durum, kapsam %96, OWASP eşleşmesi, bilinen eksikler).
 - [ ] `TEZ-11` (P1) Jüri demosu için kararlı bir ortam: HTTPS'li bir sunucu ya da yerel demo için yazılı bir yedek plan.
 - [ ] `TEZ-12` (P1) Pilotta gerçek finans verisi toplanacaksa aydınlatma metni ve açık rıza gerekir. Etik kurul onayı gerekip gerekmediği danışmana sorulmalı.
