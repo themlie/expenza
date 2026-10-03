@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
+import '../wordmark.dart';
 
 /// Açılış ekranı: kayıtlı oturum geri yüklenirken (ApiClient.restoreSession) gösterilir.
+/// Wordmark kendini çizer, altında ince bir yükleme çizgisi akar.
 class SplashScreen extends StatelessWidget {
   const SplashScreen({super.key});
 
@@ -14,29 +16,18 @@ class SplashScreen extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Icon(Icons.account_balance_wallet,
-                  color: AppColors.onPrimary, size: 30),
-            ),
-            const SizedBox(height: 20),
-            Text('Expenza',
-                style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.5,
-                    color: AppColors.onSurface)),
-            const SizedBox(height: 28),
+            ExpenzaWordmark(height: 30, strokeWidth: 1.8, animate: true),
+            const SizedBox(height: 32),
             SizedBox(
-              width: 22,
-              height: 22,
-              child: CircularProgressIndicator(
-                  strokeWidth: 2.4, color: AppColors.primary),
+              width: 120,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(AppRadius.pill),
+                child: LinearProgressIndicator(
+                  minHeight: 2,
+                  color: AppColors.primary,
+                  backgroundColor: AppColors.surfaceContainer,
+                ),
+              ),
             ),
           ],
         ),

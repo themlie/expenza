@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
@@ -9,7 +7,8 @@ import 'dashboard_screen.dart';
 import 'history_screen.dart';
 import 'profile_screen.dart';
 
-/// Alt navigasyonlu ana kabuk — 5 sekme + vurgu renkli ekleme (FAB).
+/// Alt navigasyonlu ana kabuk: 5 sekme. Bulanık cam yerine düz bej çubuk ve
+/// aktif sekmenin üstünde kayan ince lacivert çizgi.
 class HomeShell extends StatefulWidget {
   final VoidCallback onLogout;
   const HomeShell({super.key, required this.onLogout});
@@ -53,23 +52,17 @@ class _HomeShellState extends State<HomeShell> {
     return Scaffold(
       extendBody: true,
       body: IndexedStack(index: _index, children: pages),
-      bottomNavigationBar: ClipRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-          child: Container(
-            decoration: BoxDecoration(
-              color: AppColors.navBg,
-              border: Border(top: BorderSide(color: AppColors.glassBorder)),
-            ),
-            padding: const EdgeInsets.only(top: 10, bottom: 24),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                for (var i = 0; i < _items.length; i++)
-                  _navItem(i),
-              ],
-            ),
-          ),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: AppColors.navBg,
+          border: Border(top: BorderSide(color: AppColors.glassBorder)),
+        ),
+        padding: const EdgeInsets.only(bottom: 22),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            for (var i = 0; i < _items.length; i++) _navItem(i),
+          ],
         ),
       ),
     );
@@ -77,7 +70,7 @@ class _HomeShellState extends State<HomeShell> {
 
   Widget _navItem(int i) {
     final active = _index == i;
-    final color = active ? AppColors.primary : AppColors.outline;
+    final color = active ? AppColors.primary : AppColors.onSurfaceVariant;
     final (outlined, filled, label) = _items[i];
     return Expanded(
       child: Press(
@@ -85,12 +78,27 @@ class _HomeShellState extends State<HomeShell> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(active ? filled : outlined, size: 21, color: color),
+            AnimatedContainer(
+              duration: AppMotion.medium,
+              curve: AppMotion.curve,
+              height: 2,
+              width: active ? 28 : 0,
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(AppRadius.pill),
+              ),
+            ),
+            const SizedBox(height: 10),
+            AnimatedScale(
+              scale: active ? 1.08 : 1.0,
+              duration: AppMotion.fast,
+              child: Icon(active ? filled : outlined, size: 22, color: color),
+            ),
             const SizedBox(height: 5),
             Text(label,
                 style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: active ? FontWeight.w600 : FontWeight.w500,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
                     color: color)),
           ],
         ),

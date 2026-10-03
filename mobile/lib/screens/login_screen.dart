@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 
 import '../api_client.dart';
 import '../theme.dart';
+import '../wordmark.dart';
 
-/// Giriş + kayıt ekranı — "Quiet Premium" tasarım (segment kontrolü, ikonlu alanlar).
+/// Giriş + kayıt ekranı. Web sitesindeki dil: kendini çizen wordmark, ince büyük
+/// başlık, hap şeklinde segment ve buton, bej üstünde açık input'lar.
 class LoginScreen extends StatefulWidget {
   final VoidCallback onLoggedIn;
   const LoginScreen({super.key, required this.onLoggedIn});
@@ -50,108 +52,124 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(28, 24, 28, 32),
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Tema düğmesi (sağ üst)
-              Align(
-                alignment: Alignment.centerRight,
-                child: Press(
-                  onTap: () => setState(toggleThemeMode),
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.surfaceContainer),
+              // Üst satır: wordmark + tema düğmesi
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const ExpenzaWordmark(height: 20, animate: true),
+                  Press(
+                    onTap: () => setState(toggleThemeMode),
+                    child: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppColors.glassBorder),
+                      ),
+                      child: Icon(
+                          isDark
+                              ? Icons.dark_mode_outlined
+                              : Icons.light_mode_outlined,
+                          size: 18,
+                          color: AppColors.onSurfaceVariant),
                     ),
-                    child: Icon(
-                        isDark
-                            ? Icons.dark_mode_outlined
-                            : Icons.light_mode_outlined,
-                        size: 18,
-                        color: AppColors.onSurfaceVariant),
                   ),
-                ),
+                ],
               ),
-              const SizedBox(height: 28),
+              const SizedBox(height: 40),
 
-              // Marka
+              // Başlık
               Rise(
+                delayMs: 120,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Icon(Icons.account_balance_wallet,
-                          color: AppColors.onPrimary, size: 30),
+                    const Eyebrow('Kişisel finans takibi'),
+                    const SizedBox(height: 14),
+                    Text.rich(
+                      TextSpan(children: [
+                        const TextSpan(text: 'Harcamanı yaz,\ngerisi '),
+                        TextSpan(
+                            text: "Expenza'da.",
+                            style: TextStyle(color: AppColors.primary)),
+                      ]),
+                      style: AppText.display(size: 38),
                     ),
-                    const SizedBox(height: 28),
-                    Text('Expenza',
-                        style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.6,
-                            color: AppColors.onSurface)),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 14),
                     Text(
                         _isRegister
                             ? 'Birkaç saniyede hesabını oluştur.'
                             : 'Hesabına giriş yap, paranı kontrol et.',
                         style: TextStyle(
-                            fontSize: 14, color: AppColors.onSurfaceVariant)),
+                            fontSize: 17, color: AppColors.onSurfaceVariant)),
                   ],
                 ),
               ),
               const SizedBox(height: 32),
 
               // Segment kontrolü
-              Rise(delayMs: 50, child: _segmented()),
+              Rise(delayMs: 200, child: _segmented()),
               const SizedBox(height: 28),
 
               // Form
               Rise(
-                delayMs: 100,
+                delayMs: 280,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     if (_isRegister) ...[
-                      _field('AD SOYAD', _name, Icons.person_outline,
+                      _field('Ad soyad', _name, Icons.person_outline,
                           hint: 'Defne Kaya'),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 18),
                     ],
-                    _field('E-POSTA', _email, Icons.mail_outline,
+                    _field('E-posta', _email, Icons.mail_outline,
                         hint: 'defne@ornek.com',
                         keyboard: TextInputType.emailAddress),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 18),
                     _passwordField(),
                     if (_error != null) ...[
                       const SizedBox(height: 16),
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Icon(Icons.error_outline,
-                              size: 16, color: AppColors.error),
+                              size: 18, color: AppColors.error),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(_error!,
                                 style: TextStyle(
-                                    color: AppColors.error, fontSize: 13)),
+                                    color: AppColors.error, fontSize: 15)),
                           ),
                         ],
                       ),
                     ],
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 26),
                     _submitButton(),
+                    const SizedBox(height: 18),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.lock_outline,
+                            size: 16, color: AppColors.onSurfaceVariant),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                              'Banka hesabına bağlanmaz. Şifre ya da kart bilgisi istemez.',
+                              style: TextStyle(
+                                  fontSize: 14,
+                                  height: 1.4,
+                                  color: AppColors.onSurfaceVariant)),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
-              const SizedBox(height: 28),
+              const SizedBox(height: 32),
 
               // Alt geçiş (büyük yazı boyutunda taşmasın diye Wrap)
               Center(
@@ -164,14 +182,14 @@ class _LoginScreenState extends State<LoginScreen> {
                             ? 'Zaten hesabın var mı?'
                             : 'Hesabın yok mu?',
                         style: TextStyle(
-                            fontSize: 13, color: AppColors.onSurfaceVariant)),
+                            fontSize: 15, color: AppColors.onSurfaceVariant)),
                     Press(
                       onTap: () => setState(() => _isRegister = !_isRegister),
                       child: Padding(
-                        padding: const EdgeInsets.only(left: 4),
-                        child: Text(_isRegister ? 'Giriş Yap' : 'Kayıt Ol',
+                        padding: const EdgeInsets.fromLTRB(6, 12, 6, 12),
+                        child: Text(_isRegister ? 'Giriş yap' : 'Kayıt ol',
                             style: TextStyle(
-                                fontSize: 13,
+                                fontSize: 15,
                                 fontWeight: FontWeight.w600,
                                 color: AppColors.primary)),
                       ),
@@ -192,7 +210,7 @@ class _LoginScreenState extends State<LoginScreen> {
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppRadius.pill),
         border: Border.all(color: AppColors.glassBorder),
       ),
       child: Stack(
@@ -200,24 +218,24 @@ class _LoginScreenState extends State<LoginScreen> {
           AnimatedAlign(
             alignment:
                 _isRegister ? Alignment.centerRight : Alignment.centerLeft,
-            duration: const Duration(milliseconds: 220),
-            curve: Curves.easeOutCubic,
+            duration: AppMotion.medium,
+            curve: AppMotion.curve,
             child: FractionallySizedBox(
               widthFactor: 0.5,
               heightFactor: 1,
               child: Container(
                 decoration: BoxDecoration(
                   color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
                 ),
               ),
             ),
           ),
           Row(
             children: [
-              _segTab('Giriş Yap', !_isRegister,
+              _segTab('Giriş yap', !_isRegister,
                   () => setState(() => _isRegister = false)),
-              _segTab('Kayıt Ol', _isRegister,
+              _segTab('Kayıt ol', _isRegister,
                   () => setState(() => _isRegister = true)),
             ],
           ),
@@ -232,11 +250,15 @@ class _LoginScreenState extends State<LoginScreen> {
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
         child: Center(
-          child: Text(label,
-              style: TextStyle(
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w600,
-                  color: active ? AppColors.onPrimary : AppColors.onSurfaceVariant)),
+          child: AnimatedDefaultTextStyle(
+            duration: AppMotion.fast,
+            style: TextStyle(
+                fontFamily: DefaultTextStyle.of(context).style.fontFamily,
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+                color: active ? AppColors.onPrimary : AppColors.onSurfaceVariant),
+            child: Text(label),
+          ),
         ),
       ),
     );
@@ -247,13 +269,8 @@ class _LoginScreenState extends State<LoginScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
-            style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.6,
-                color: AppColors.outline)),
-        const SizedBox(height: 8),
+        Eyebrow(label),
+        const SizedBox(height: 10),
         _fieldBox(
           child: Row(
             children: [
@@ -263,14 +280,16 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: TextField(
                   controller: c,
                   keyboardType: keyboard,
-                  style: TextStyle(
-                      fontSize: 14, color: AppColors.onSurface),
+                  style: TextStyle(fontSize: 17, color: AppColors.onSurface),
                   decoration: InputDecoration(
                     isCollapsed: true,
+                    filled: false,
                     border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
                     hintText: hint,
                     hintStyle:
-                        TextStyle(color: AppColors.outline, fontSize: 14),
+                        TextStyle(color: AppColors.outline, fontSize: 17),
                   ),
                 ),
               ),
@@ -288,25 +307,20 @@ class _LoginScreenState extends State<LoginScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('PAROLA',
-                style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.6,
-                    color: AppColors.outline)),
+            const Eyebrow('Parola'),
             if (!_isRegister)
               Press(
                 onTap: () => ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Şifre sıfırlama yakında'))),
                 child: Text('Şifremi unuttum',
                     style: TextStyle(
-                        fontSize: 12,
+                        fontSize: 14,
                         fontWeight: FontWeight.w500,
                         color: AppColors.primary)),
               ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         _fieldBox(
           child: Row(
             children: [
@@ -316,13 +330,16 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: TextField(
                   controller: _pass,
                   obscureText: _obscure,
-                  style: TextStyle(fontSize: 14, color: AppColors.onSurface),
+                  style: TextStyle(fontSize: 17, color: AppColors.onSurface),
                   decoration: InputDecoration(
                     isCollapsed: true,
+                    filled: false,
                     border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
                     hintText: '••••••••',
                     hintStyle:
-                        TextStyle(color: AppColors.outline, fontSize: 14),
+                        TextStyle(color: AppColors.outline, fontSize: 17),
                   ),
                 ),
               ),
@@ -341,7 +358,7 @@ class _LoginScreenState extends State<LoginScreen> {
         if (_isRegister) ...[
           const SizedBox(height: 8),
           Text('En az 8 karakter; en az bir harf ve bir rakam.',
-              style: TextStyle(fontSize: 12, color: AppColors.outline)),
+              style: TextStyle(fontSize: 14, color: AppColors.onSurfaceVariant)),
         ],
       ],
     );
@@ -351,8 +368,8 @@ class _LoginScreenState extends State<LoginScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
+        color: AppColors.surfaceBright,
+        borderRadius: BorderRadius.circular(AppRadius.md),
         border: Border.all(color: AppColors.glassBorder),
       ),
       child: child,
@@ -366,7 +383,7 @@ class _LoginScreenState extends State<LoginScreen> {
         height: 54,
         decoration: BoxDecoration(
           color: AppColors.primary,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppRadius.pill),
         ),
         child: Center(
           child: _busy
@@ -378,12 +395,12 @@ class _LoginScreenState extends State<LoginScreen> {
               : Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(_isRegister ? 'Kayıt Ol' : 'Giriş Yap',
+                    Text(_isRegister ? 'Hesap oluştur' : 'Giriş yap',
                         style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
                             color: AppColors.onPrimary)),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 10),
                     Icon(Icons.arrow_forward,
                         size: 18, color: AppColors.onPrimary),
                   ],
