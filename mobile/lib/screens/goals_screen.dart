@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../api_client.dart';
 import '../models.dart';
@@ -31,8 +32,9 @@ const _icons = [
   Icons.card_giftcard,
 ];
 
-/// Tasarruf hedefleri: lacivert özet paneli, hedef kartları, katkı/ekle
-/// alt sayfaları, sola kaydır→sil. Renk/ikon indekse göre atanır.
+/// Tasarruf hedefleri: lacivert özet paneli, hedef kartları (son tarih, durum, ayda
+/// ayrılması gereken tutar), ekle/düzenle, katkı ve para çekme alt sayfaları,
+/// sola kaydır→sil. Renk/ikon indekse göre atanır.
 class GoalsScreen extends StatefulWidget {
   const GoalsScreen({super.key});
 
@@ -67,7 +69,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
         builder: (context, snap) {
           if ((snap.data ?? []).isEmpty) return const SizedBox.shrink();
           return Press(
-            onTap: _openAdd,
+            onTap: () => _openForm(),
             child: Container(
               height: 54,
               padding: const EdgeInsets.symmetric(horizontal: 22),
@@ -179,8 +181,10 @@ class _GoalsScreenState extends State<GoalsScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Eyebrow('Toplam birikim',
-                  size: 11, color: ink.withValues(alpha: 0.75)),
+              Flexible(
+                child: Eyebrow('Toplam birikim',
+                    size: 11, color: ink.withValues(alpha: 0.75)),
+              ),
               Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -318,8 +322,13 @@ class _GoalsScreenState extends State<GoalsScreen> {
                     style: AppText.mono(
                         size: 16,
                         color: complete ? AppColors.positive : AppColors.onSurface)),
+                _menu(g),
               ],
             ),
+            if (g.deadline != null && !complete) ...[
+              const SizedBox(height: 12),
+              _deadlineLine(g),
+            ],
             const SizedBox(height: 14),
             ExBar(value: g.progress, color: barColor),
             const SizedBox(height: 16),
@@ -346,16 +355,38 @@ class _GoalsScreenState extends State<GoalsScreen> {
               )
             else
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Eyebrow('Kalan', size: 10),
-                      const SizedBox(height: 4),
-                      Text(money(g.remaining), style: AppText.mono(size: 15)),
-                    ],
+                  // Dar ekranda "Ayda gereken" alta geçer.
+                  Expanded(
+                    child: Wrap(
+                      spacing: 18,
+                      runSpacing: 8,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Eyebrow('Kalan', size: 10),
+                            const SizedBox(height: 4),
+                            Text(money(g.remaining),
+                                style: AppText.mono(size: 15)),
+                          ],
+                        ),
+                        if (g.monthlyNeeded != null)
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Eyebrow('Ayda gereken', size: 10),
+                              const SizedBox(height: 4),
+                              Text(money(g.monthlyNeeded!),
+                                  style: AppText.mono(size: 15)),
+                            ],
+                          ),
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 12),
                   Press(
                     onTap: () => _openContribute(g, color),
                     child: Container(
@@ -386,6 +417,95 @@ class _GoalsScreenState extends State<GoalsScreen> {
     );
   }
 
+  static const _statusText = {
+    'on_track': 'Yolunda',
+    'behind': 'Geride',
+    'overdue': 'Süresi geçti',
+  };
+
+  Color _statusColor(String status) => switch (status) {
+        'on_track' => AppColors.positive,
+        'behind' => AppColors.warn,
+        _ => AppColors.error,
+      };
+
+  String _dateText(String iso) {
+    final d = DateTime.parse(iso);
+    final sameYear = d.year == DateTime.now().year;
+    return DateFormat(sameYear ? 'd MMMM' : 'd MMMM y', 'tr_TR').format(d);
+  }
+
+  Widget _deadlineLine(GoalModel g) {
+    final days = g.daysLeft ?? 0;
+    final left = days < 0
+        ? '${-days} gün geçti'
+        : days == 0
+            ? 'son gün bugün'
+            : '$days gün kaldı';
+    final status = _statusText[g.status];
+    return Row(
+      children: [
+        Icon(Icons.event_outlined, size: 15, color: AppColors.onSurfaceVariant),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text('${_dateText(g.deadline!)} · $left',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 14, color: AppColors.onSurfaceVariant)),
+        ),
+        if (status != null)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+            decoration: BoxDecoration(
+                color: _statusColor(g.status).withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(AppRadius.pill)),
+            child: Text(status,
+                style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w500,
+                    color: _statusColor(g.status))),
+          ),
+      ],
+    );
+  }
+
+  Widget _menu(GoalModel g) {
+    return PopupMenuButton<String>(
+      tooltip: 'Hedef seçenekleri',
+      icon: Icon(Icons.more_vert, size: 20, color: AppColors.onSurfaceVariant),
+      color: AppColors.surface,
+      onSelected: (v) async {
+        switch (v) {
+          case 'edit':
+            _openForm(editing: g);
+          case 'withdraw':
+            _openWithdraw(g);
+          case 'delete':
+            if (await _confirmDelete(g)) {
+              await ApiClient.instance.deleteGoal(g.id);
+              _refresh();
+            }
+        }
+      },
+      itemBuilder: (_) => [
+        const PopupMenuItem(value: 'edit', child: Text('Düzenle')),
+        if (g.currentAmount > 0)
+          const PopupMenuItem(value: 'withdraw', child: Text('Para çek')),
+        const PopupMenuItem(value: 'delete', child: Text('Sil')),
+      ],
+    );
+  }
+
+  Widget _error(String? message) => message == null
+      ? const SizedBox.shrink()
+      : Padding(
+          padding: const EdgeInsets.only(top: 14),
+          child: Text(message,
+              style: TextStyle(fontSize: 14, color: AppColors.error)),
+        );
+
+  static String _msg(Object e) => e.toString().replaceFirst('Exception: ', '');
+
   Widget _empty() {
     return Padding(
       padding: const EdgeInsets.only(top: 40),
@@ -415,7 +535,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                   fontSize: 16, height: 1.5, color: AppColors.onSurfaceVariant)),
           const SizedBox(height: 24),
           Press(
-            onTap: _openAdd,
+            onTap: () => _openForm(),
             child: Container(
               height: 54,
               padding: const EdgeInsets.symmetric(horizontal: 26),
@@ -555,13 +675,24 @@ class _GoalsScreenState extends State<GoalsScreen> {
         ),
       );
 
-  Future<void> _openAdd() async {
-    final nameCtrl = TextEditingController();
-    final targetCtrl = TextEditingController();
+  /// Yeni hedef ya da [editing] verilirse düzenleme. Son tarih isteğe bağlı.
+  Future<void> _openForm({GoalModel? editing}) async {
+    final rate = CurrencyService.rates[currencyNotifier.value] ?? 1.0;
+    final nameCtrl = TextEditingController(text: editing?.title ?? '');
+    final targetCtrl = TextEditingController(
+        text: editing == null
+            ? ''
+            : (editing.targetAmount * rate)
+                .toStringAsFixed((editing.targetAmount * rate) % 1 == 0 ? 0 : 2));
+    DateTime? deadline =
+        editing?.deadline == null ? null : DateTime.parse(editing!.deadline!);
+    String? error;
+    var busy = false;
+
     await _sheet((ctx, setSheet) => Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _sheetTitle(ctx, 'Yeni hedef'),
+            _sheetTitle(ctx, editing == null ? 'Yeni hedef' : 'Hedefi düzenle'),
             _fieldLabel('Hedef adı'),
             _inputBox(
               child: TextField(
@@ -585,7 +716,8 @@ class _GoalsScreenState extends State<GoalsScreen> {
                   Expanded(
                     child: TextField(
                       controller: targetCtrl,
-                      keyboardType: TextInputType.number,
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
                       style: AppText.mono(size: 18),
                       decoration: _bare.copyWith(hintText: '0'),
                     ),
@@ -593,16 +725,150 @@ class _GoalsScreenState extends State<GoalsScreen> {
                 ],
               ),
             ),
+            const SizedBox(height: 20),
+            _fieldLabel('Son tarih (isteğe bağlı)'),
+            Press(
+              onTap: () async {
+                final now = DateTime.now();
+                final today = DateTime(now.year, now.month, now.day);
+                final initial = deadline != null && !deadline!.isBefore(today)
+                    ? deadline!
+                    : DateTime(today.year, today.month + 6, today.day);
+                final picked = await showDatePicker(
+                  context: ctx,
+                  initialDate: initial,
+                  firstDate: today,
+                  lastDate: DateTime(today.year + 30),
+                  helpText: 'Hedefin son tarihi',
+                  cancelText: 'Vazgeç',
+                  confirmText: 'Seç',
+                );
+                if (picked != null) setSheet(() => deadline = picked);
+              },
+              child: _inputBox(
+                child: Row(
+                  children: [
+                    Icon(Icons.event_outlined,
+                        size: 19, color: AppColors.onSurfaceVariant),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                          deadline == null
+                              ? 'Tarih seç'
+                              : DateFormat('d MMMM y', 'tr_TR').format(deadline!),
+                          style: TextStyle(
+                              fontSize: 17,
+                              color: deadline == null
+                                  ? AppColors.outline
+                                  : AppColors.onSurface)),
+                    ),
+                    if (deadline != null)
+                      Press(
+                        onTap: () => setSheet(() => deadline = null),
+                        child: Icon(Icons.cancel,
+                            size: 18, color: AppColors.outline),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            _error(error),
             const SizedBox(height: 26),
-            _primaryButton('Hedef oluştur', () async {
+            _primaryButton(
+                busy
+                    ? 'Kaydediliyor…'
+                    : (editing == null ? 'Hedef oluştur' : 'Kaydet'), () async {
+              if (busy) return;
               final name = nameCtrl.text.trim();
-              final enteredTarget =
+              final entered =
                   double.tryParse(targetCtrl.text.replaceAll(',', '.'));
-              if (name.isEmpty || enteredTarget == null || enteredTarget <= 0) return;
-              final targetInTry = CurrencyService.convertToTry(enteredTarget, currencyNotifier.value);
-              await ApiClient.instance.createGoal(name, targetInTry);
-              if (ctx.mounted) Navigator.pop(ctx);
-              _refresh();
+              if (name.isEmpty || entered == null || entered <= 0) {
+                setSheet(() => error = 'Hedef adı ve tutarı gir.');
+                return;
+              }
+              final target =
+                  CurrencyService.convertToTry(entered, currencyNotifier.value);
+              final iso = deadline == null
+                  ? null
+                  : DateFormat('yyyy-MM-dd').format(deadline!);
+              setSheet(() {
+                busy = true;
+                error = null;
+              });
+              try {
+                if (editing == null) {
+                  await ApiClient.instance.createGoal(name, target, deadline: iso);
+                } else {
+                  await ApiClient.instance.updateGoal(editing.id,
+                      title: name,
+                      targetAmount: target,
+                      deadline: iso,
+                      clearDeadline: iso == null && editing.deadline != null);
+                }
+                if (ctx.mounted) Navigator.pop(ctx);
+                _refresh();
+              } catch (e) {
+                setSheet(() {
+                  busy = false;
+                  error = _msg(e);
+                });
+              }
+            }),
+          ],
+        ));
+  }
+
+  /// Hedefte biriken paradan geri alma.
+  Future<void> _openWithdraw(GoalModel g) async {
+    final amtCtrl = TextEditingController();
+    String? error;
+    await _sheet((ctx, setSheet) => Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _sheetTitle(ctx, '${g.title}: para çek'),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 20),
+              child: Text('Birikim ${money(g.currentAmount)}',
+                  style: AppText.mono(
+                      size: 14, color: AppColors.onSurfaceVariant)),
+            ),
+            _fieldLabel('Tutar (${currencyNotifier.value})'),
+            _inputBox(
+              child: Row(
+                children: [
+                  Text(currencyNotifier.value,
+                      style: AppText.mono(
+                          size: 18, color: AppColors.onSurfaceVariant)),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: TextField(
+                      controller: amtCtrl,
+                      autofocus: true,
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                      style: AppText.mono(size: 18),
+                      decoration: _bare.copyWith(hintText: '0'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            _error(error),
+            const SizedBox(height: 26),
+            _primaryButton('Çek', () async {
+              final entered = double.tryParse(amtCtrl.text.replaceAll(',', '.'));
+              if (entered == null || entered <= 0) {
+                setSheet(() => error = 'Tutar gir.');
+                return;
+              }
+              try {
+                await ApiClient.instance.withdrawGoal(g.id,
+                    CurrencyService.convertToTry(entered, currencyNotifier.value));
+                if (ctx.mounted) Navigator.pop(ctx);
+                _refresh();
+              } catch (e) {
+                setSheet(() => error = _msg(e));
+              }
             }),
           ],
         ));
