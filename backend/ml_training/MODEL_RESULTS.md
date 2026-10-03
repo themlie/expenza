@@ -44,6 +44,29 @@ Alışveriş, Diğer**.
 
 BERTurk'ün tek hatası: `millenicom internet → Yemek` (çok küçük, bilinmeyen ISP markası).
 
+### Taban çizgisi ve hız (3 Ekim 2026, `python -m ml_training.evaluate`)
+
+Aynı 46 örnekte, scikit-learn 1.9.0 ile, metinler tek tek tahmin edilerek ölçüldü
+(Windows, CPU):
+
+| Model | Doğruluk | Makro F1 | ms/metin |
+|---|---|---|---|
+| Anahtar kelime kuralları (uygulamadaki yedek) | 0.435 | 0.483 | 0.01 |
+| TF-IDF + SVM (üründeki) | 0.935 | 0.933 | 7.55 |
+
+Üründeki modelin dosyası 1463 KB. Kurallar yalnızca listedeki kelimeleri tanıdığı için
+eğitilmiş modelin çok gerisinde kalıyor; bu fark, öğrenen bir model kullanmanın gerekçesi
+olarak raporda kullanılabilir. Süreler makineye göre değişir; karşılaştırma için oran önemlidir.
+`--gemini` seçeneği aynı seti Gemini'ye de sorar (anahtar gerekir, sonuç henüz ölçülmedi).
+
+### Gerçek kullanımda doğruluk
+
+Uygulama, gider kaydedilirken ekranda gösterilen öneriyi (kategori, güven, model adı)
+kullanıcının seçtiği kategoriyle birlikte saklar. `python -m ml_training.feedback_report`
+öneri kabul oranını, model ve güven aralığı bazında doğruluğu (kalibrasyon) ve kategori
+bazında precision/recall değerlerini verir. `--export` kullanıcıların etiketlediği notları
+CSV olarak yazar; doğrulama setini büyütmek için kullanılabilir.
+
 ## Mühendislik kararı
 Üründe **baseline** kullanılır (hız, düşük kaynak, kolay dağıtım). BERTurk, ulaşılabilir
 üst sınırı (ceiling) gösteren **kıyas** modelidir. Bu, "en iyi modeli kıyasla, hafif olanı
@@ -56,9 +79,12 @@ BERTurk'ün tek hatası: `millenicom internet → Yemek` (çok küçük, bilinme
   genişletilebilir.
 
 ## Tekrar üretim
+Backend klasöründe, `pip install -r requirements-ml.txt` sonrası:
+
 ```bash
 python -m ml_training.generate_data     # veri üret
 python -m ml_training.train_baseline    # baseline eğit + kaydet (üründe kullanılan)
-python -m ml_training.evaluate          # gerçek sette dürüst değerlendir
+python -m ml_training.evaluate          # gerçek sette dürüst değerlendir (--gemini, --json)
+python -m ml_training.feedback_report   # uygulamadaki öneri kabul oranı (--export)
 python -m ml_training.berturk_train     # BERTurk kıyas (GPU gerekir)
 ```

@@ -50,7 +50,7 @@ Kimlik önekleri: `SEC` güvenlik, `HATA` işlev hatası, `ALT` altyapı ve belg
 - [x] `ALT-06` Repo temizliği: `backend/venv/` (8138 dosya, Mac'e ait Python 3.9 ortamı) ve `mobile/macos/Flutter/ephemeral/` git takibinden çıkarılmalı (`git rm --cached`). İkisi de geliştiricinin yerel yolunu içeriyor.
 - [x] `ALT-07` Backend'de hiç test yok. Yapılacak: pytest ile kayıt ve giriş, token, başka kullanıcının kaydına erişim, işlem uçları, bütçe hesabı, tekrarlayan işlem ve analitik testleri. `backend/tests/` altında 60 test eklendi; kapsam %85 (`pytest --cov=app`). Tekrarlayan işlem testleri `HATA-01` ile gelecek.
 - [x] `ALT-08` Tek widget testi başarısız (`mobile/test/widget_test.dart:9`): giriş ekranında iki "Giriş Yap" metni var, test bir tane bekliyor. Test düzeltildi ve kayıt sekmesi için ikinci test eklendi; bu test giriş ekranının altındaki satırın büyük yazı boyutunda taştığını da ortaya çıkardı (düzeltildi).
-- [ ] `ALT-09` CI yok. Yapılacak: GitHub Actions ile her push'ta pytest, `flutter analyze` ve `flutter test`.
+- [x] `ALT-09` CI yok. Yapılacak: GitHub Actions ile her push'ta pytest, `flutter analyze` ve `flutter test`. Yapıldı: `.github/workflows/ci.yml`; ilk çalıştırma (cdf802f) iki işte de başarılı.
 - [ ] `ALT-10` Fiş tarama (ML Kit) iOS'ta büyük olasılıkla en az iOS 15.5 hedefi istiyor; `ios/Podfile` repoda yok ve iOS derlemesi Mac olmadan denenemedi. Mac'te ilk `flutter run` sırasında kontrol edilmeli (belirsiz).
 
 ## P2
@@ -110,8 +110,8 @@ BLM497 şablonları (Proje Önerisi, Gereksinimler Şartnamesi ve Ön Analiz, Ö
 
 - [ ] `TEZ-01` (P0) Ana iddiayı ölçen bir deney tasarımı yok. Karar verilmeli: gerçek kullanıcılarla pilot (örneğin 2-4 hafta, ön ve son anket, SUS kullanılabilirlik ölçeği, kullanım metrikleri) ya da simülasyon. Bu karar kayıt tutulacak verileri ve onay metnini belirlediği için erken verilmeli.
 - [x] `TEZ-02` (P1) Kendi eğitilen model ürünün ana yolu değil. `GEMINI_API_KEY` tanımlıysa kategori önerisini önce Gemini veriyor, kendi model yedek konumuna düşüyor. Yapılacak: kendi model ana yol olmalı; Gemini aynı doğrulama setinde kıyas modeli olarak değerlendirilebilir. Yapıldı: kategori önerisi varsayılan olarak yerel modelden geliyor (`CATEGORIZER=local`); Gemini yalnızca `CATEGORIZER=gemini` ile kıyas için açılıyor.
-- [ ] `TEZ-03` (P1) Doğrulama seti 46 örnek. `MODEL_RESULTS.md` de 150+ gerçek örnek öneriyor. Sınıf bazında precision ve recall, karışıklık matrisi, gecikme ve model boyutu kıyası eklenmeli.
-- [ ] `TEZ-04` (P1) Kullanıcının öneriyi kabul ya da reddetmesi kaydedilmiyor. Kaydedilirse modelin gerçek kullanımdaki doğruluğu ölçülebilir ve yeniden eğitimde kullanılabilir.
+- [ ] `TEZ-03` (P1) Doğrulama seti 46 örnek. `MODEL_RESULTS.md` de 150+ gerçek örnek öneriyor. Sınıf bazında precision ve recall, karışıklık matrisi, gecikme ve model boyutu kıyası eklenmeli. Araçlar hazır: `evaluate.py` modelleri yan yana ölçüyor (SVM 0.935, kurallar 0.435, 7.55 ms/metin; `--gemini`, `--json`). Doğrulama setini büyütmek için gerçek kullanıcı notları gerekiyor (`feedback_report --export`).
+- [x] `TEZ-04` (P1) Kullanıcının öneriyi kabul ya da reddetmesi kaydedilmiyor. Kaydedilirse modelin gerçek kullanımdaki doğruluğu ölçülebilir ve yeniden eğitimde kullanılabilir. Yapıldı: gösterilen öneri işlemle birlikte saklanıyor (migration 0005); `python -m ml_training.feedback_report` kabul oranı, kalibrasyon ve kategori bazında P/R veriyor, `--export` etiketli notları CSV'ye yazıyor.
 - [ ] `TEZ-05` (P2) Tahmin ve anomali yöntemleri ölçülmemiş. Geçmiş veride geriye dönük test (MAE, MAPE) ve eklenen anomalilerle precision/recall yapılabilir.
 - [ ] `TEZ-06` (P1) GŞÖA için UML çizimleri: use case, sınıf, sıra, durum makinesi, etkinlik.
 - [ ] `TEZ-07` (P1) ÖT için modül, veri ve arayüz ayrıştırması (arayüzler OpenAPI şemasından çıkarılabilir).

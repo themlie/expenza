@@ -101,6 +101,14 @@ class Transaction(Base):
     )
     # Modelin kategoriyi otomatik atayıp atamadığını ve güven skorunu izlemek için.
     auto_categorized: Mapped[bool] = mapped_column(default=False)
+    # Kayıt anında kullanıcıya gösterilen model önerisi. Seçilen kategoriyle
+    # karşılaştırılarak modelin gerçek kullanımdaki doğruluğu ölçülür
+    # (ml_training/feedback_report.py). Öneri gösterilmediyse boştur.
+    suggested_category: Mapped[Optional[CategoryEnum]] = mapped_column(
+        Enum(CategoryEnum), nullable=True
+    )
+    suggestion_confidence: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    suggestion_model: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
     # Aktif bir tekrarlayan seriye ait mi? Seri durdurulunca False yapılır.
     is_recurring: Mapped[bool] = mapped_column(default=False)
     series_id: Mapped[Optional[int]] = mapped_column(

@@ -22,9 +22,13 @@ def create_transaction(
 ):
     category = payload.category
     auto = False
+    suggested = payload.suggested_category
+    confidence = payload.suggestion_confidence
+    model_name = payload.suggestion_model
     if category is None and payload.type == models.TxType.expense:
-        predicted, _conf, _model = categorizer.categorize(payload.note)
-        category = predicted
+        # Kullanıcı kategori seçmediyse model atar (bu kayıt kullanıcıca doğrulanmamıştır).
+        category, confidence, model_name = categorizer.categorize(payload.note)
+        suggested = category
         auto = True
     elif category is None:
         category = models.CategoryEnum.diger
@@ -35,6 +39,9 @@ def create_transaction(
         type=payload.type,
         category=category,
         auto_categorized=auto,
+        suggested_category=suggested,
+        suggestion_confidence=confidence,
+        suggestion_model=model_name,
         note=payload.note,
         occurred_on=payload.occurred_on,
     )

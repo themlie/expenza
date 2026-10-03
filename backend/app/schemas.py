@@ -53,7 +53,10 @@ class TransactionBase(BaseModel):
 
 
 class TransactionCreate(TransactionBase):
-    pass
+    # İstemcide gösterilen kategori önerisi (varsa). Model geri bildirimi için saklanır.
+    suggested_category: Optional[CategoryEnum] = None
+    suggestion_confidence: Optional[float] = Field(default=None, ge=0, le=1)
+    suggestion_model: Optional[str] = Field(default=None, max_length=40)
 
 
 class TransactionUpdate(BaseModel):

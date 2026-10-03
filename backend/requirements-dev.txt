@@ -1,4 +1,4 @@
-# Geliştirme ve test bağımlılıkları.
--r requirements.txt
+# Geliştirme ve test bağımlılıkları (model araçları da test edildiği için ML paketleri dahil).
+-r requirements-ml.txt
 pytest==9.1.1
 pytest-cov==7.1.0
