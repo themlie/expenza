@@ -83,7 +83,7 @@ Kimlik önekleri: `SEC` güvenlik, `HATA` işlev hatası, `ALT` altyapı ve belg
 - [ ] `KOD-03` Ekran dosyaları 500-840 satır ve arayüz, API çağrısı ve iş kuralı aynı yerde. Backend'de iş kuralları router'larda; servis katmanı yok.
 - [x] `KOD-04` Kullanılmayan bağımlılıklar: `pydantic-settings`, çalışma zamanında `pandas` (sadece eğitimde gerekli), `provider`. Kullanılmayan kod: `ExpenzaAppBar` (`home_shell.dart:102`). Not: `cupertino_icons` önce kaldırıldı, sonra geri eklendi; uygulama kodu kullanmasa da Flutter'ın Cupertino bileşenleri bu fonta ihtiyaç duyuyor.
 - [x] `KOD-05` Gemini çağrısı iki ayrı yerde ve iki farklı model adıyla yazılmış (`chat.py`, `categorizer.py`). Tek modülde toplanmalı. Düzeltildi: tüm Gemini çağrıları `app/llm.py` üzerinden.
-- [ ] `KOD-06` Performans: tekrarlayan işlem üretimindeki N+1 sorgu ve satır başına commit; açılışta beş sekmenin birden yüklenmesi (3 kez `GET /transactions`); analitik uçlarının bütün işlemleri belleğe çekmesi; `chat.py`'de `async` fonksiyon içinde senkron veritabanı sorgusu; sayfalama olmaması. Tekrarlayan işlemdeki N+1 ve sohbetteki async/senkron sorunu giderildi; diğerleri açık.
+- [ ] `KOD-06` Performans: tekrarlayan işlem üretimindeki N+1 sorgu ve satır başına commit; açılışta beş sekmenin birden yüklenmesi (3 kez `GET /transactions`); analitik uçlarının bütün işlemleri belleğe çekmesi; `chat.py`'de `async` fonksiyon içinde senkron veritabanı sorgusu; sayfalama olmaması. Tekrarlayan işlemdeki N+1, sohbetteki async/senkron sorunu ve analitik uçlarının bütün işlemleri belleğe alması giderildi (5.000 işlemde tahmin ucu p50 1154 ms'den 194 ms'ye indi). Açılıştaki tekrar eden istekler ve sayfalama açık.
 - [x] `KOD-07` Güncel olmayan belgeler: `expenza_yol_haritasi.md` Go, PostgreSQL ve Riverpod anlatıyor; `categorizer.py` başındaki açıklama "STUB ile çalışır" diyor. Eski yol haritası kaldırıldı, `categorizer.py` açıklaması güncellendi.
 - [x] `KOD-08` `theme.dart:37` `\$e` yazdığı için döviz kuru hatasını basmıyor. Düzeltildi.
 - [ ] `KOD-09` Backend metinleri (içgörü, anomali nedeni, sohbet) para birimini ₺ olarak sabit yazıyor. Geçmiş tutarlar bugünkü kurla çevriliyor.
@@ -115,7 +115,7 @@ BLM497 şablonları (Proje Önerisi, Gereksinimler Şartnamesi ve Ön Analiz, Ö
 - [ ] `TEZ-05` (P2) Tahmin ve anomali yöntemleri ölçülmemiş. Geçmiş veride geriye dönük test (MAE, MAPE) ve eklenen anomalilerle precision/recall yapılabilir.
 - [ ] `TEZ-06` (P1) GŞÖA için UML çizimleri: use case, sınıf, sıra, durum makinesi, etkinlik.
 - [ ] `TEZ-07` (P1) ÖT için modül, veri ve arayüz ayrıştırması (arayüzler OpenAPI şemasından çıkarılabilir).
-- [ ] `TEZ-08` (P1) İşlevsel olmayan gereksinimler için ölçülmüş değerler: kapasite, güvenilirlik, ölçeklenebilirlik (yük testi). GŞÖA'nın sürdürülebilirlik bölümü CI'ın nasıl kullanıldığını soruyor (`ALT-09`).
+- [ ] `TEZ-08` (P1) İşlevsel olmayan gereksinimler için ölçülmüş değerler: kapasite, güvenilirlik, ölçeklenebilirlik (yük testi). GŞÖA'nın sürdürülebilirlik bölümü CI'ın nasıl kullanıldığını soruyor (`ALT-09`). Kısmen: kapasite ve ölçeklenebilirlik ölçüldü (`docs/performans.md`, `backend/tools/load_test.py`); güvenilirlik (hata/çalışma süresi) henüz ölçülmedi.
 - [ ] `TEZ-09` (P2) "Aktif koç" iddiasını destekleyen proaktif özellikler az: bildirim (`OZ-06`), bütçe kaydırma önerisi, risk skoru, "farz et ki" senaryosu.
 - [ ] `TEZ-10` (P2) Test bölümü için test sonuçları ve kapsam (coverage) raporu (`ALT-07`, `ALT-08`).
 - [ ] `TEZ-11` (P1) Jüri demosu için kararlı bir ortam: HTTPS'li bir sunucu ya da yerel demo için yazılı bir yedek plan.

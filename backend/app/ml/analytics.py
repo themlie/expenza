@@ -27,15 +27,30 @@ def _expenses(txs: list[Transaction]) -> list[Transaction]:
 
 
 def forecast_spending(txs: list[Transaction], today: date | None = None) -> dict:
-    """Gelecek ay ve ay-sonu harcama tahmini döndürür."""
+    """Gelecek ay ve ay-sonu harcama tahmini döndürür (işlem listesinden)."""
     today = today or date.today()
     exp = _expenses(txs)
 
-    # Aylık toplamlar
     monthly: dict[tuple[int, int], float] = defaultdict(float)
+    cur_by_cat: dict[str, float] = defaultdict(float)
     for t in exp:
         monthly[_month_key(t.occurred_on)] += t.amount
+        if _month_key(t.occurred_on) == (today.year, today.month):
+            cur_by_cat[t.category.value] += t.amount
+    return forecast_from_totals(monthly, cur_by_cat, today)
 
+
+def forecast_from_totals(
+    monthly: dict[tuple[int, int], float],
+    cur_by_cat: dict[str, float],
+    today: date,
+) -> dict:
+    """Tahmini hazır toplamlardan hesaplar.
+
+    monthly: (yıl, ay) -> o ayın toplam gideri
+    cur_by_cat: kategori -> içinde bulunulan ayın gideri
+    API bu toplamları SQL ile hesaplar; böylece bütün işlemler belleğe alınmaz.
+    """
     cur_key = (today.year, today.month)
     cur_spent = monthly.get(cur_key, 0.0)
 
@@ -80,10 +95,6 @@ def forecast_spending(txs: list[Transaction], today: date | None = None) -> dict
         velocity = "Normal"
 
     # Kategori bazında ay-sonu projeksiyonu
-    cur_by_cat: dict[str, float] = defaultdict(float)
-    for t in exp:
-        if _month_key(t.occurred_on) == cur_key:
-            cur_by_cat[t.category.value] += t.amount
     by_category = sorted(
         ({"category": c, "projected": round(v / days_elapsed * days_in_month, 2)}
          for c, v in cur_by_cat.items()),
