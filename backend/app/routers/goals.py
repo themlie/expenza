@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from .. import models, schemas
+from .. import coach, models, schemas
 from ..auth import get_current_user
 from ..database import get_db
 
@@ -11,9 +11,8 @@ router = APIRouter(prefix="/goals", tags=["goals"])
 
 def _to_out(g: models.Goal) -> schemas.GoalOut:
     out = schemas.GoalOut.model_validate(g)
-    out.progress = 0.0 if g.target_amount == 0 else min(
-        g.current_amount / g.target_amount, 1.0
-    )
+    for field, value in coach.goal_plan(g).items():
+        setattr(out, field, value)
     return out
 
 
@@ -60,6 +59,24 @@ def _get_owned(db: Session, user_id: int, goal_id: int) -> models.Goal:
     return goal
 
 
+@router.put("/{goal_id}", response_model=schemas.GoalOut)
+def update_goal(
+    goal_id: int,
+    payload: schemas.GoalUpdate,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    """Ad, hedef tutar ve son tarihi günceller. deadline: null son tarihi kaldırır."""
+    goal = _get_owned(db, user.id, goal_id)
+    data = payload.model_dump(exclude_unset=True)
+    for field, value in data.items():
+        if value is not None or field == "deadline":
+            setattr(goal, field, value)
+    db.commit()
+    db.refresh(goal)
+    return _to_out(goal)
+
+
 @router.post("/{goal_id}/contribute", response_model=schemas.GoalOut)
 def contribute(
     goal_id: int,
@@ -69,6 +86,23 @@ def contribute(
 ):
     goal = _get_owned(db, user.id, goal_id)
     goal.current_amount += payload.amount
+    db.commit()
+    db.refresh(goal)
+    return _to_out(goal)
+
+
+@router.post("/{goal_id}/withdraw", response_model=schemas.GoalOut)
+def withdraw(
+    goal_id: int,
+    payload: schemas.GoalContribute,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    """Hedefte biriken paradan geri alır."""
+    goal = _get_owned(db, user.id, goal_id)
+    if payload.amount > goal.current_amount:
+        raise HTTPException(status_code=400, detail="Hedefte bu kadar birikim yok")
+    goal.current_amount -= payload.amount
     db.commit()
     db.refresh(goal)
     return _to_out(goal)

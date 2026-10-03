@@ -1,14 +1,28 @@
-"""Kayıt ve giriş uçları."""
+"""Kayıt, giriş, oturum yenileme ve hesap yönetimi uçları."""
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
-from .. import auth, models, ratelimit, schemas
+from .. import auth, models, ratelimit, schemas, sessions
 from ..database import get_db
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+def _require_password(user: models.User, password: str) -> None:
+    """Hassas işlemlerden önce parolayı yeniden sorar.
+
+    Hatalı denemeler girişle aynı sayaca yazılır (15 dakikada 5). 401 yerine 400 döner;
+    istemci 401'i oturumun düştüğü şeklinde yorumlayıp çıkış yapıyor.
+    """
+    email_key = user.email.strip().lower()
+    if ratelimit.login_failures_by_email.is_limited(email_key):
+        raise ratelimit.too_many()
+    if not auth.verify_password(password, user.hashed_password):
+        ratelimit.login_failures_by_email.add(email_key)
+        raise HTTPException(status_code=400, detail="Mevcut parola hatalı")
 
 
 @router.post("/register", response_model=schemas.UserOut, status_code=201)
@@ -23,6 +37,7 @@ def register(
         email=payload.email,
         hashed_password=auth.hash_password(payload.password),
         display_name=payload.display_name,
+        token_version=auth.new_token_version(),
     )
     db.add(user)
     db.commit()
@@ -51,12 +66,95 @@ def login(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="E-posta veya parola hatalı",
         )
-    return schemas.Token(access_token=auth.create_access_token(user.email))
+    pair = sessions.issue_tokens(db, user)
+    db.commit()
+    return pair
+
+
+@router.post("/refresh", response_model=schemas.Token)
+def refresh(
+    payload: schemas.RefreshRequest, request: Request, db: Session = Depends(get_db)
+):
+    """Yenileme token'ını yeni bir erişim + yenileme token'ı çiftiyle değiştirir.
+
+    Kullanılan token iptal edilir; aynı token ikinci kez gelirse o girişin bütün
+    token'ları iptal edilir ve 401 döner.
+    """
+    ratelimit.enforce(ratelimit.refresh_by_ip, ratelimit.client_ip(request))
+    return sessions.rotate(db, payload.refresh_token)
+
+
+@router.post("/logout", status_code=204)
+def logout(payload: schemas.RefreshRequest, db: Session = Depends(get_db)):
+    """Bu cihazdaki oturumu kapatır (yenileme token'ı iptal edilir)."""
+    sessions.revoke(db, payload.refresh_token)
+    return None
 
 
 @router.get("/me", response_model=schemas.UserOut)
 def me(current: models.User = Depends(auth.get_current_user)):
     return current
+
+
+@router.put("/me", response_model=schemas.UserOut)
+def update_me(
+    payload: schemas.UserUpdate,
+    current: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Ad ve uyarı tercihini günceller (null gönderilen alan değişmez)."""
+    for field, value in payload.model_dump(exclude_unset=True).items():
+        if value is not None:
+            setattr(current, field, value.strip() if isinstance(value, str) else value)
+    db.commit()
+    db.refresh(current)
+    return current
+
+
+@router.post("/change-password", response_model=schemas.Token)
+def change_password(
+    payload: schemas.PasswordChange,
+    current: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Parolayı değiştirir ve diğer bütün cihazlardaki oturumları kapatır.
+
+    Oturum sürümü arttığı için eski erişim token'ları da hemen geçersiz olur. Bu cihaz
+    için yeni bir token çifti döner.
+    """
+    _require_password(current, payload.current_password)
+    if payload.current_password == payload.new_password:
+        raise HTTPException(status_code=400, detail="Yeni parola eskisiyle aynı olamaz")
+    current.hashed_password = auth.hash_password(payload.new_password)
+    current.token_version += 1
+    sessions.revoke_all(db, current.id)
+    pair = sessions.issue_tokens(db, current)
+    db.commit()
+    return pair
+
+
+@router.delete("/me", status_code=204)
+def delete_account(
+    payload: schemas.AccountDelete,
+    current: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Hesabı ve kullanıcıya ait bütün verileri kalıcı olarak siler."""
+    _require_password(current, payload.password)
+    uid = current.id
+    # İşlemler serilere bağlı olduğu için önce silinir.
+    for model in (
+        models.Transaction,
+        models.RecurringSeries,
+        models.Budget,
+        models.Goal,
+        models.RefreshToken,
+        models.DismissedAlert,
+    ):
+        db.query(model).filter(model.user_id == uid).delete(synchronize_session=False)
+    db.delete(current)
+    db.commit()
+    return None
 
 
 @router.post("/me/ai-consent", response_model=schemas.UserOut)

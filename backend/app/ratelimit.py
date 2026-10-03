@@ -55,8 +55,16 @@ login_failures_by_email = RateLimiter(limit=5, window_seconds=15 * 60)
 register_by_ip = RateLimiter(limit=10, window_seconds=60 * 60)
 chat_by_user = RateLimiter(limit=20, window_seconds=60)
 categorize_by_user = RateLimiter(limit=60, window_seconds=60)
+refresh_by_ip = RateLimiter(limit=60, window_seconds=60)
 
-_ALL = (login_by_ip, login_failures_by_email, register_by_ip, chat_by_user, categorize_by_user)
+_ALL = (
+    login_by_ip,
+    login_failures_by_email,
+    register_by_ip,
+    chat_by_user,
+    categorize_by_user,
+    refresh_by_ip,
+)
 
 
 def reset_all() -> None:

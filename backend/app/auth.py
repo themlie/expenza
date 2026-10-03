@@ -27,7 +27,8 @@ if not settings.secret_key or len(settings.secret_key) < MIN_SECRET_LENGTH:
 
 SECRET_KEY = settings.secret_key
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 1 hafta
+# Erişim token'ı kısa ömürlü; oturum yenileme token'ıyla uzatılır (bkz. sessions.py).
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
@@ -51,10 +52,16 @@ def verify_password(plain: str, hashed: str) -> bool:
 DUMMY_PASSWORD_HASH = hash_password(secrets.token_urlsafe(16))
 
 
-def create_access_token(subject: str) -> str:
+def new_token_version() -> int:
+    """Yeni hesabın oturum sürümü (bkz. models.User.token_version)."""
+    return secrets.randbelow(2**31)
+
+
+def create_access_token(user: models.User) -> str:
     now = datetime.now(timezone.utc)
     payload = {
-        "sub": subject,
+        "sub": user.email,
+        "ver": user.token_version,
         "iat": now,
         "exp": now + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
     }
@@ -71,13 +78,17 @@ def get_current_user(
     )
     try:
         payload = jwt.decode(
-            token, SECRET_KEY, algorithms=[ALGORITHM], options={"require": ["exp", "sub"]}
+            token,
+            SECRET_KEY,
+            algorithms=[ALGORITHM],
+            options={"require": ["exp", "sub", "ver"]},
         )
     except InvalidTokenError:
         raise cred_error
     email = payload["sub"]
 
     user = db.query(models.User).filter(models.User.email == email).first()
-    if user is None:
+    # Parola değiştiyse ya da hesap silinip yeniden açıldıysa sürüm tutmaz.
+    if user is None or payload["ver"] != user.token_version:
         raise cred_error
     return user

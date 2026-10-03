@@ -6,17 +6,20 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from . import recurring
+from . import recurring, sessions
 from .config import settings
+from .database import SessionLocal
 from .migrate import upgrade_database
 from .routers import (
+    alerts,
     analytics,
     auth_router,
     budgets,
+    chat,
     goals,
+    meta,
     ml_router,
     transactions,
-    chat,
 )
 
 log = logging.getLogger(__name__)
@@ -24,22 +27,32 @@ log = logging.getLogger(__name__)
 # Şemayı açılışta en son migration'a getir (backend/migrations).
 upgrade_database()
 
-# Tekrarlayan serilerin eksik aylarını üretme aralığı (açılışta bir kez de çalışır).
-RECURRING_INTERVAL_SECONDS = 60 * 60
+# Arka plan bakımının aralığı (açılışta bir kez de çalışır).
+MAINTENANCE_INTERVAL_SECONDS = 60 * 60
 
 
-async def _recurring_loop() -> None:
+def _purge_tokens() -> None:
+    with SessionLocal() as db:
+        sessions.purge_expired(db)
+
+
+async def _maintenance_loop() -> None:
+    """Tekrarlayan serilerin eksik aylarını üretir, süresi dolmuş token'ları siler."""
     while True:
-        try:
-            await asyncio.to_thread(recurring.materialize_all)
-        except Exception:
-            log.exception("Tekrarlayan işlemler üretilemedi")
-        await asyncio.sleep(RECURRING_INTERVAL_SECONDS)
+        for job, error in (
+            (recurring.materialize_all, "Tekrarlayan işlemler üretilemedi"),
+            (_purge_tokens, "Süresi dolan oturumlar silinemedi"),
+        ):
+            try:
+                await asyncio.to_thread(job)
+            except Exception:
+                log.exception(error)
+        await asyncio.sleep(MAINTENANCE_INTERVAL_SECONDS)
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    task = asyncio.create_task(_recurring_loop())
+    task = asyncio.create_task(_maintenance_loop())
     yield
     task.cancel()
 
@@ -85,6 +98,8 @@ app.include_router(ml_router.router)
 app.include_router(analytics.router)
 app.include_router(goals.router)
 app.include_router(chat.router)
+app.include_router(alerts.router)
+app.include_router(meta.router)
 
 
 @app.get("/", tags=["health"])

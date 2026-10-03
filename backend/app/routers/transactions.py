@@ -1,12 +1,12 @@
 """İşlem (gelir/gider) uçları. Kategori verilmezse hero model otomatik atar."""
-from datetime import date
+from datetime import date, timedelta
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import extract, func
 from sqlalchemy.orm import Session
 
-from .. import models, recurring, schemas
+from .. import coach, models, recurring, schemas
 from ..auth import get_current_user
 from ..database import get_db
 from ..ml import categorizer
@@ -14,7 +14,27 @@ from ..ml import categorizer
 router = APIRouter(prefix="/transactions", tags=["transactions"])
 
 
-@router.post("", response_model=schemas.TransactionOut, status_code=201)
+def _parse_month(month: Optional[str]) -> Optional[tuple[int, int]]:
+    """'YYYY-MM' -> (yıl, ay). Boşsa None; biçim hatalıysa 400."""
+    if not month:
+        return None
+    try:
+        year_s, mon_s = month.split("-")
+        year, mon = int(year_s), int(mon_s)
+        if not 1 <= mon <= 12:
+            raise ValueError
+        return year, mon
+    except (ValueError, AttributeError):
+        raise HTTPException(status_code=400, detail="month formatı YYYY-MM olmalı")
+
+
+def _saved(tx: models.Transaction, alerts: list) -> schemas.TransactionSaved:
+    out = schemas.TransactionSaved.model_validate(tx, from_attributes=True)
+    out.budget_alerts = alerts
+    return out
+
+
+@router.post("", response_model=schemas.TransactionSaved, status_code=201)
 def create_transaction(
     payload: schemas.TransactionCreate,
     db: Session = Depends(get_db),
@@ -52,12 +72,13 @@ def create_transaction(
         recurring.materialize(db, series)
     db.commit()
     db.refresh(tx)
-    return tx
+    return _saved(tx, coach.budget_alerts_after_save(db, user, tx))
 
 
 @router.get("", response_model=list[schemas.TransactionOut])
 def list_transactions(
     limit: int = Query(200, ge=1, le=500),
+    offset: int = Query(0, ge=0),  # sayfalama: atlanacak kayıt sayısı
     category: Optional[models.CategoryEnum] = None,
     type: Optional[models.TxType] = None,
     month: Optional[str] = None,  # "YYYY-MM"
@@ -72,15 +93,12 @@ def list_transactions(
         query = query.filter(models.Transaction.category == category)
     if type is not None:
         query = query.filter(models.Transaction.type == type)
-    if month:
-        try:
-            year_s, mon_s = month.split("-")
-            query = query.filter(
-                extract("year", models.Transaction.occurred_on) == int(year_s),
-                extract("month", models.Transaction.occurred_on) == int(mon_s),
-            )
-        except (ValueError, AttributeError):
-            raise HTTPException(status_code=400, detail="month formatı YYYY-MM olmalı")
+    parsed = _parse_month(month)
+    if parsed:
+        query = query.filter(
+            extract("year", models.Transaction.occurred_on) == parsed[0],
+            extract("month", models.Transaction.occurred_on) == parsed[1],
+        )
     if q:
         query = query.filter(models.Transaction.note.ilike(f"%{q}%"))
 
@@ -88,23 +106,59 @@ def list_transactions(
         query.order_by(
             models.Transaction.occurred_on.desc(), models.Transaction.id.desc()
         )
+        .offset(offset)
         .limit(limit)
         .all()
     )
 
 
-@router.get("/summary", response_model=schemas.TransactionSummary)
-def transaction_summary(
+@router.get("/months", response_model=list[schemas.MonthSummary])
+def transaction_months(
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
 ):
-    """Bakiye ve toplamlar (tüm işlemler) ile bu ayın kategori dağılımı."""
+    """İşlem olan aylar (yeniden eskiye) ve her ayın gelir/gider toplamı."""
+    tx = models.Transaction
+    year = extract("year", tx.occurred_on)
+    month = extract("month", tx.occurred_on)
+    rows = (
+        db.query(year, month, tx.type, func.sum(tx.amount), func.count(tx.id))
+        .filter(tx.user_id == user.id)
+        .group_by(year, month, tx.type)
+        .all()
+    )
+    months: dict[tuple[int, int], dict] = {}
+    for y, m, kind, total, count in rows:
+        item = months.setdefault(
+            (int(y), int(m)), {"income": 0.0, "expense": 0.0, "count": 0}
+        )
+        item["income" if kind == models.TxType.income else "expense"] += float(total)
+        item["count"] += count
+    return [
+        schemas.MonthSummary(
+            month=f"{y:04d}-{m:02d}",
+            income=round(v["income"], 2),
+            expense=round(v["expense"], 2),
+            count=v["count"],
+        )
+        for (y, m), v in sorted(months.items(), reverse=True)
+    ]
+
+
+@router.get("/summary", response_model=schemas.TransactionSummary)
+def transaction_summary(
+    month: Optional[str] = None,  # "YYYY-MM"; boşsa içinde bulunulan ay
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    """Bakiye ve toplamlar (tüm işlemler) ile istenen ayın kategori dağılımı."""
     tx = models.Transaction
     total = func.coalesce(func.sum(tx.amount), 0.0)
     today = date.today()
+    year, mon = _parse_month(month) or (today.year, today.month)
     this_month = (
-        extract("year", tx.occurred_on) == today.year,
-        extract("month", tx.occurred_on) == today.month,
+        extract("year", tx.occurred_on) == year,
+        extract("month", tx.occurred_on) == mon,
     )
 
     def totals_by_type(*filters) -> dict:
@@ -132,7 +186,7 @@ def transaction_summary(
         balance=round(income - expense, 2),
         total_income=round(income, 2),
         total_expense=round(expense, 2),
-        month=f"{today:%Y-%m}",
+        month=f"{year:04d}-{mon:02d}",
         month_income=round(month.get(models.TxType.income, 0.0), 2),
         month_expense=round(month.get(models.TxType.expense, 0.0), 2),
         month_by_category=[
@@ -142,7 +196,7 @@ def transaction_summary(
     )
 
 
-@router.put("/{tx_id}", response_model=schemas.TransactionOut)
+@router.put("/{tx_id}", response_model=schemas.TransactionSaved)
 def update_transaction(
     tx_id: int,
     payload: schemas.TransactionUpdate,
@@ -165,6 +219,7 @@ def update_transaction(
 
     data = {k: v for k, v in payload.model_dump(exclude_unset=True).items() if v is not None}
     wants_recurring = data.pop("is_recurring", None)
+    previous = (tx.category, tx.type, tx.amount, tx.occurred_on)
     for field, value in data.items():
         setattr(tx, field, value)
 
@@ -173,13 +228,18 @@ def update_transaction(
     if wants_recurring is False and active:
         recurring.stop_series(db, series)
     elif wants_recurring is True and not active:
+        if tx.occurred_on < date.today() - timedelta(days=schemas.MAX_RECURRING_PAST_DAYS):
+            raise HTTPException(
+                status_code=400,
+                detail="Tekrarlayan işlem en fazla 12 ay önceden başlatılabilir",
+            )
         recurring.materialize(db, recurring.start_series(db, tx))
     elif active and any(field in data for field in recurring.TEMPLATE_FIELDS):
         recurring.update_template(series, tx)
 
     db.commit()
     db.refresh(tx)
-    return tx
+    return _saved(tx, coach.budget_alerts_after_save(db, user, tx, previous))
 
 
 @router.delete("/{tx_id}", status_code=204)

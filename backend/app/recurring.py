@@ -30,6 +30,20 @@ def _occurrence(series: models.RecurringSeries, year: int, month: int) -> date:
     return date(year, month, min(series.day_of_month, last_day))
 
 
+def next_occurrence(
+    series: models.RecurringSeries, today: date
+) -> Optional[date]:
+    """Serinin bugünden sonraki ilk tarihi; seri durdurulduysa None."""
+    if not series.active:
+        return None
+    year, month = series.last_generated_on.year, series.last_generated_on.month
+    while True:
+        year, month = _next_month(year, month)
+        day = _occurrence(series, year, month)
+        if day > today:
+            return day
+
+
 def start_series(db: Session, tx: models.Transaction) -> models.RecurringSeries:
     """İşlemi, her ay aynı gün tekrarlanan yeni bir serinin ilk kaydı yapar."""
     series = models.RecurringSeries(

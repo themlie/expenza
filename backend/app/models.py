@@ -17,6 +17,7 @@ from sqlalchemy import (
     String,
     UniqueConstraint,
     func,
+    true,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -53,6 +54,12 @@ class User(Base):
     # Sohbet asistanı için verilerinin Google Gemini'ye gönderilmesine onay verdiği an
     # (UTC). Boşsa onay yok ya da geri çekilmiş.
     ai_consent_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    # Erişim token'larındaki "ver" alanıyla karşılaştırılır. Parola değişince artar ve o
+    # ana kadar verilmiş bütün erişim token'ları geçersiz olur. Kayıtta rastgele başlar;
+    # böylece silinip aynı e-postayla yeniden açılan hesap eski token'ları kabul etmez.
+    token_version: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    # Bütçe, anomali, hedef ve tekrarlayan ödeme uyarıları (Profil > Bildirimler).
+    alerts_enabled: Mapped[bool] = mapped_column(default=True, server_default=true())
 
     transactions: Mapped[list["Transaction"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
@@ -147,3 +154,36 @@ class Goal(Base):
     current_amount: Mapped[float] = mapped_column(Float, default=0.0)
     deadline: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class RefreshToken(Base):
+    """Uzun ömürlü yenileme token'ı. Değerin kendisi değil SHA-256 özeti saklanır.
+
+    Her kullanımda iptal edilip aynı ailede yenisi verilir (rotation). İptal edilmiş bir
+    token tekrar gelirse token çalınmış sayılır ve bütün aile iptal edilir.
+    """
+
+    __tablename__ = "refresh_tokens"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    family_id: Mapped[str] = mapped_column(String(32), index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime)
+    revoked_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class DismissedAlert(Base):
+    """Kullanıcının kapattığı uyarılar. Uyarı kimlikleri ay bilgisini içerdiği için
+    aynı uyarı sonraki ay yeniden gösterilir."""
+
+    __tablename__ = "dismissed_alerts"
+    __table_args__ = (
+        UniqueConstraint("user_id", "alert_id", name="uq_dismissed_alerts_user_alert"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    alert_id: Mapped[str] = mapped_column(String(120))
+    dismissed_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

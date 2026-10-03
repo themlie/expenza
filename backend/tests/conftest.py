@@ -39,6 +39,8 @@ def _clean_db():
             models.RecurringSeries,
             models.Budget,
             models.Goal,
+            models.RefreshToken,
+            models.DismissedAlert,
             models.User,
         ):
             db.query(model).delete()
@@ -47,7 +49,7 @@ def _clean_db():
 
 @pytest.fixture
 def make_user(client):
-    """Kayıt olup giriş yapan ve token başlığını döndüren yardımcı."""
+    """Kayıt olup giriş yapan; token başlığını ve yenileme token'ını döndüren yardımcı."""
 
     def _make(password: str = "parola123", name: str = "Test"):
         email = f"u-{uuid.uuid4().hex[:10]}@example.com"
@@ -57,8 +59,13 @@ def make_user(client):
         )
         assert r.status_code == 201, r.text
         r = client.post("/auth/login", data={"username": email, "password": password})
-        token = r.json()["access_token"]
-        return {"email": email, "headers": {"Authorization": f"Bearer {token}"}}
+        tokens = r.json()
+        return {
+            "email": email,
+            "password": password,
+            "refresh": tokens["refresh_token"],
+            "headers": {"Authorization": f"Bearer {tokens['access_token']}"},
+        }
 
     return _make
 
