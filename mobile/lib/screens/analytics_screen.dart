@@ -32,10 +32,10 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
     final r = await Future.wait([
       api.getForecast(),
       api.getAnomalies(),
-      api.getTransactions(),
+      api.getSummary(),
     ]);
     return _Data(r[0] as ForecastModel, r[1] as List<AnomalyModel>,
-        r[2] as List<TransactionModel>);
+        r[2] as SummaryModel);
   }
 
   String _monthShort(String yyyyMm) {
@@ -84,7 +84,7 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
                 const SizedBox(height: 36),
                 Rise(delayMs: 300, child: _anomaliesSection(d.anomalies)),
                 const SizedBox(height: 36),
-                Rise(delayMs: 360, child: _topCategories(d.txs)),
+                Rise(delayMs: 360, child: _topCategories(d.summary)),
               ],
             );
           },
@@ -116,17 +116,21 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Eyebrow(DateFormat('MMMM yyyy', 'tr_TR').format(DateTime.now())),
-            const SizedBox(height: 10),
-            Text('Analitik', style: AppText.display(size: 38)),
-            const SizedBox(height: 8),
-            Text('Ay bitmeden ay sonunu gör.',
-                style: TextStyle(fontSize: 15, color: AppColors.onSurfaceVariant)),
-          ],
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Eyebrow(DateFormat('MMMM yyyy', 'tr_TR').format(DateTime.now())),
+              const SizedBox(height: 10),
+              Text('Analitik', style: AppText.display(size: 38)),
+              const SizedBox(height: 8),
+              Text('Ay bitmeden ay sonunu gör.',
+                  style: TextStyle(
+                      fontSize: 15, color: AppColors.onSurfaceVariant)),
+            ],
+          ),
         ),
+        const SizedBox(width: 12),
         Press(
           onTap: toggleThemeMode,
           child: Container(
@@ -616,20 +620,18 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
   }
 
   // ---- En çok harcanan kategoriler ----
-  Widget _topCategories(List<TransactionModel> txs) {
-    final byCat = <String, double>{};
-    for (final t in txs.where((t) => t.type == 'expense')) {
-      byCat[t.category] = (byCat[t.category] ?? 0) + t.amount;
-    }
-    final top = byCat.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
-    final list = top.take(5).toList();
+  // Bu ayın giderleri backend'de bütün işlemlerden toplanır (büyükten küçüğe gelir).
+  Widget _topCategories(SummaryModel summary) {
+    final list = summary.monthByCategory
+        .take(5)
+        .map((c) => MapEntry(c.category, c.total))
+        .toList();
     final max = list.isEmpty ? 1.0 : list.first.value;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _title('En çok harcanan kategoriler'),
+        _title('Bu ay en çok harcanan kategoriler'),
         const SizedBox(height: 16),
         GlassCard(
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 4),
@@ -685,6 +687,6 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
 class _Data {
   final ForecastModel forecast;
   final List<AnomalyModel> anomalies;
-  final List<TransactionModel> txs;
-  _Data(this.forecast, this.anomalies, this.txs);
+  final SummaryModel summary;
+  _Data(this.forecast, this.anomalies, this.summary);
 }

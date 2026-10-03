@@ -24,6 +24,8 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isRegister = false;
   bool _busy = false;
   bool _obscure = true;
+  // Kapalıysa oturum cihaza kaydedilmez; uygulama kapanınca tekrar giriş gerekir.
+  bool _remember = true;
   // Sunucu oturumu düşürdüyse (401) giriş ekranı nedenini gösterir.
   String? _error = ApiClient.instance.sessionEndedReason;
 
@@ -37,7 +39,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (_isRegister) {
         await api.register(_email.text.trim(), _pass.text, _name.text.trim());
       }
-      await api.login(_email.text.trim(), _pass.text);
+      await api.login(_email.text.trim(), _pass.text, remember: _remember);
       widget.onLoggedIn();
     } catch (e) {
       setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
@@ -147,7 +149,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         ],
                       ),
                     ],
-                    const SizedBox(height: 26),
+                    const SizedBox(height: 18),
+                    _rememberRow(),
+                    const SizedBox(height: 18),
                     _submitButton(),
                     const SizedBox(height: 18),
                     Row(
@@ -360,6 +364,34 @@ class _LoginScreenState extends State<LoginScreen> {
         border: Border.all(color: AppColors.glassBorder),
       ),
       child: child,
+    );
+  }
+
+  Widget _rememberRow() {
+    return Press(
+      onTap: () => setState(() => _remember = !_remember),
+      child: Row(
+        children: [
+          AnimatedContainer(
+            duration: AppMotion.fast,
+            width: 20,
+            height: 20,
+            decoration: BoxDecoration(
+              color: _remember ? AppColors.primary : Colors.transparent,
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(
+                  color: _remember ? AppColors.primary : AppColors.outline,
+                  width: 1.5),
+            ),
+            child: _remember
+                ? Icon(Icons.check, size: 14, color: AppColors.onPrimary)
+                : null,
+          ),
+          const SizedBox(width: 10),
+          Text('Beni hatırla',
+              style: TextStyle(fontSize: 15, color: AppColors.onSurface)),
+        ],
+      ),
     );
   }
 

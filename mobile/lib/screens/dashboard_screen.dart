@@ -139,13 +139,20 @@ class DashboardScreenState extends State<DashboardScreen> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        Text(title,
-            style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w400,
-                letterSpacing: -0.4,
-                color: AppColors.onSurface)),
-        if (trailing != null) Eyebrow(trailing),
+        Flexible(
+          child: Text(title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w400,
+                  letterSpacing: -0.4,
+                  color: AppColors.onSurface)),
+        ),
+        if (trailing != null) ...[
+          const SizedBox(width: 12),
+          Eyebrow(trailing),
+        ],
       ],
     );
   }

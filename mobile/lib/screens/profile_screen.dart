@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../api_client.dart';
 import '../models.dart';
@@ -19,6 +20,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late Future<_Data> _future;
   bool _notif = true;
   bool? _aiConsent; // null = henüz yüklenmedi
+  DateTime? _memberSince; // üyelik tarihi (kayıt)
 
   @override
   void initState() {
@@ -30,6 +32,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         setState(() {
           _aiConsent = u.aiConsent;
           _notif = u.alertsEnabled;
+          _memberSince = u.createdAt;
         });
       }
     }).catchError((_) {});
@@ -217,6 +220,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
           color: AppColors.onSurface));
 
   Widget _userCard(String name, String email) {
+    return Press(
+      onTap: _openAccount,
+      child: _userCardBody(name, email),
+    );
+  }
+
+  Widget _userCardBody(String name, String email) {
     return GlassCard(
       child: Row(
         children: [
@@ -251,26 +261,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                         fontSize: 15, color: AppColors.onSurfaceVariant)),
-                const SizedBox(height: 10),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                      color: AppColors.positive.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(AppRadius.pill)),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.check, size: 13, color: AppColors.positive),
-                      const SizedBox(width: 5),
-                      Text('Premium üye',
-                          style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: AppColors.positive)),
-                    ],
+                if (_memberSince != null) ...[
+                  const SizedBox(height: 10),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                        color: AppColors.surfaceContainer,
+                        borderRadius: BorderRadius.circular(AppRadius.pill)),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.event_available_outlined,
+                            size: 13, color: AppColors.onSurfaceVariant),
+                        const SizedBox(width: 5),
+                        Text(
+                            'Üye: ${DateFormat('MMMM y', 'tr_TR').format(_memberSince!)}',
+                            style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.onSurfaceVariant)),
+                      ],
+                    ),
                   ),
-                ),
+                ],
               ],
             ),
           ),
@@ -485,7 +499,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
           _divider(),
           _settingRow(AppColors.outline, Icons.info_outline, 'Sürüm',
-              value: 'v0.1.0'),
+              value: 'v$appVersion'),
         ],
       ),
     );

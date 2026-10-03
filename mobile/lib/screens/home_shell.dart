@@ -19,6 +19,9 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   int _index = 0;
+  // Sekmeler ilk açıldıklarında kurulur (ve verilerini o zaman yükler); sonra
+  // IndexedStack içinde durumlarını korurlar. Girişte yalnızca ana sayfa yüklenir.
+  final _visited = <int>{0};
 
   final _dashKey = GlobalKey<DashboardScreenState>();
   final _budgetKey = GlobalKey<BudgetsScreenState>();
@@ -51,7 +54,10 @@ class _HomeShellState extends State<HomeShell> {
     ];
     return Scaffold(
       extendBody: true,
-      body: IndexedStack(index: _index, children: pages),
+      body: IndexedStack(index: _index, children: [
+        for (var i = 0; i < pages.length; i++)
+          _visited.contains(i) ? pages[i] : const SizedBox.shrink(),
+      ]),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: AppColors.navBg,
@@ -74,7 +80,10 @@ class _HomeShellState extends State<HomeShell> {
     final (outlined, filled, label) = _items[i];
     return Expanded(
       child: Press(
-        onTap: () => setState(() => _index = i),
+        onTap: () => setState(() {
+          _index = i;
+          _visited.add(i);
+        }),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
