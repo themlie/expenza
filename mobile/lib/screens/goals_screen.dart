@@ -5,14 +5,22 @@ import '../models.dart';
 import '../theme.dart';
 import 'dashboard_screen.dart' show money;
 
-const _okColor = Color(0xFF46F1C5);
-const _palette = [
-  Color(0xFF6EA8FE),
-  Color(0xFF46F1C5),
-  Color(0xFFB68CF0),
-  Color(0xFFF0B36B),
-  Color(0xFFEC9BC4),
-  Color(0xFF5FD4C2),
+// Hedef kartlarının ayırt edici renkleri: kategori paletiyle aynı aile.
+const _paletteLight = [
+  Color(0xFF2E64B5),
+  Color(0xFF1E9A85),
+  Color(0xFF8A4FA0),
+  Color(0xFFB8761F),
+  Color(0xFFC25B7E),
+  Color(0xFF5B4FB0),
+];
+const _paletteDark = [
+  Color(0xFF5B8BD6),
+  Color(0xFF2AA38D),
+  Color(0xFFA776C2),
+  Color(0xFFBA7E2C),
+  Color(0xFFC66A88),
+  Color(0xFF8A7FE0),
 ];
 const _icons = [
   Icons.flight,
@@ -23,7 +31,7 @@ const _icons = [
   Icons.card_giftcard,
 ];
 
-/// Tasarruf Hedefleri — premium: özet kartı, renkli hedef kartları, katkı/ekle
+/// Tasarruf hedefleri: lacivert özet paneli, hedef kartları, katkı/ekle
 /// alt sayfaları, sola kaydır→sil. Renk/ikon indekse göre atanır.
 class GoalsScreen extends StatefulWidget {
   const GoalsScreen({super.key});
@@ -43,7 +51,11 @@ class _GoalsScreenState extends State<GoalsScreen> {
 
   void _refresh() => setState(() => _future = ApiClient.instance.getGoals());
 
-  Color _color(int i) => _palette[i % _palette.length];
+  Color _color(int i) {
+    final p = AppColors.isDark ? _paletteDark : _paletteLight;
+    return p[i % p.length];
+  }
+
   IconData _icon(int i) => _icons[i % _icons.length];
 
   @override
@@ -57,42 +69,54 @@ class _GoalsScreenState extends State<GoalsScreen> {
           return Press(
             onTap: _openAdd,
             child: Container(
-              width: 52,
-              height: 52,
+              height: 54,
+              padding: const EdgeInsets.symmetric(horizontal: 22),
               decoration: BoxDecoration(
-                  color: AppColors.primary, shape: BoxShape.circle),
-              child: Icon(Icons.add, color: AppColors.onPrimary, size: 26),
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(AppRadius.pill)),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.add, color: AppColors.onPrimary, size: 22),
+                  const SizedBox(width: 8),
+                  Text('Hedef ekle',
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.onPrimary)),
+                ],
+              ),
             ),
           );
         },
       ),
       body: RefreshIndicator(
         onRefresh: () async => _refresh(),
-        color: AppColors.onSurface,
+        color: AppColors.primary,
         backgroundColor: AppColors.surface,
         child: FutureBuilder<List<GoalModel>>(
           future: _future,
           builder: (context, snap) {
             if (snap.connectionState == ConnectionState.waiting) {
               return Center(
-                  child: CircularProgressIndicator(color: AppColors.onSurface));
+                  child: CircularProgressIndicator(color: AppColors.primary));
             }
             if (snap.hasError) {
               return LoadError(error: snap.error!, onRetry: _refresh);
             }
             final goals = snap.data ?? [];
             return ListView(
-              padding: const EdgeInsets.fromLTRB(24, 56, 24, 120),
+              padding: const EdgeInsets.fromLTRB(20, 56, 20, 120),
               children: [
                 Rise(child: _header(isDark, goals.length)),
-                const SizedBox(height: 22),
+                const SizedBox(height: 28),
                 if (goals.isEmpty)
-                  _empty()
+                  Rise(delayMs: 80, child: _empty())
                 else ...[
-                  Rise(delayMs: 40, child: _summary(goals)),
-                  const SizedBox(height: 20),
+                  Rise(delayMs: 80, child: _summary(goals)),
+                  const SizedBox(height: 16),
                   for (var i = 0; i < goals.length; i++)
-                    Rise(delayMs: 80 + i * 30, child: _goalCard(goals[i], i)),
+                    Rise(delayMs: 160 + i * 60, child: _goalCard(goals[i], i)),
                 ],
               ],
             );
@@ -102,143 +126,94 @@ class _GoalsScreenState extends State<GoalsScreen> {
     );
   }
 
+  Widget _circleButton(IconData icon, VoidCallback onTap) {
+    return Press(
+      onTap: onTap,
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: AppColors.glassBorder)),
+        child: Icon(icon, size: 19, color: AppColors.onSurface),
+      ),
+    );
+  }
+
   Widget _header(bool isDark, int count) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: Row(
-            children: [
-              Press(
-                onTap: () => Navigator.of(context).maybePop(),
-                child: Padding(
-                  padding: const EdgeInsets.only(right: 12, top: 2),
-                  child: Icon(Icons.arrow_back,
-                      size: 22, color: AppColors.onSurface),
-                ),
-              ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Tasarruf Hedefleri',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                            fontSize: 23,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.6,
-                            height: 1,
-                            color: AppColors.onSurface)),
-                    const SizedBox(height: 6),
-                    Text(count > 0 ? '$count aktif hedef' : 'hedef yok',
-                        style:
-                            TextStyle(fontSize: 12.5, color: AppColors.outline)),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 8),
-        Press(
-          onTap: toggleThemeMode,
-          child: Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: AppColors.surfaceContainer)),
-            child: Icon(
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _circleButton(Icons.arrow_back, () => Navigator.of(context).maybePop()),
+            _circleButton(
                 isDark ? Icons.dark_mode_outlined : Icons.light_mode_outlined,
-                size: 18,
-                color: AppColors.onSurfaceVariant),
-          ),
+                toggleThemeMode),
+          ],
         ),
+        const SizedBox(height: 24),
+        Eyebrow(count > 0 ? '$count aktif hedef' : 'Hedef yok'),
+        const SizedBox(height: 10),
+        Text('Tasarruf hedefleri', style: AppText.display(size: 36)),
       ],
     );
   }
 
+  // ---- Özet: lacivert panel (web'deki hedef kartı) ----
   Widget _summary(List<GoalModel> goals) {
     final saved = goals.fold(
         0.0, (s, g) => s + (g.currentAmount.clamp(0, g.targetAmount)));
     final target = goals.fold(0.0, (s, g) => s + g.targetAmount);
     final done = goals.where((g) => g.progress >= 1).length;
     final pct = target == 0 ? 0.0 : saved / target;
+    final ink = AppColors.onPrimary;
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.glassBorder),
-      ),
+    return GlassCard(
+      color: AppColors.primary,
+      padding: const EdgeInsets.all(22),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('TOPLAM BİRİKİM',
-                  style: TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.4,
-                      color: AppColors.onSurfaceVariant)),
+              Eyebrow('Toplam birikim',
+                  size: 11, color: ink.withValues(alpha: 0.75)),
               Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                    color: _okColor.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(99)),
+                    color: ink.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(AppRadius.pill)),
                 child: Text('$done tamamlandı',
                     style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: _okColor,
-                        fontFeatures: kTnum)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(money(saved),
-                  style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.w800,
-                      height: 1,
-                      color: AppColors.onSurface,
-                      fontFeatures: kTnum)),
-              const SizedBox(width: 8),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 3),
-                child: Text('/ ${money(target)}',
-                    style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.outline,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: ink,
                         fontFeatures: kTnum)),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0, end: pct.clamp(0, 1).toDouble()),
-              duration: const Duration(milliseconds: 900),
-              curve: Curves.easeOutCubic,
-              builder: (context, v, _) => LinearProgressIndicator(
-                value: v,
-                minHeight: 9,
-                backgroundColor: AppColors.surfaceContainer,
-                color: AppColors.primary,
-              ),
-            ),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: CountUp(
+                value: saved,
+                format: money,
+                style: AppText.display(size: 46, color: ink)),
           ),
+          const SizedBox(height: 6),
+          Text('/ ${money(target)}',
+              style: AppText.mono(size: 14, color: ink.withValues(alpha: 0.75))),
+          const SizedBox(height: 18),
+          ExBar(
+              value: pct,
+              color: ink,
+              track: ink.withValues(alpha: 0.2),
+              height: 8),
         ],
       ),
     );
@@ -247,7 +222,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
   Widget _goalCard(GoalModel g, int index) {
     final color = _color(index);
     final complete = g.progress >= 1;
-    final barColor = complete ? _okColor : color;
+    final barColor = complete ? AppColors.positive : color;
     final pct = (g.progress * 100).clamp(0, 100).toInt();
 
     return Dismissible(
@@ -257,19 +232,19 @@ class _GoalsScreenState extends State<GoalsScreen> {
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
             color: AppColors.error,
-            borderRadius: BorderRadius.circular(18)),
+            borderRadius: BorderRadius.circular(AppRadius.lg)),
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 22),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            Icon(Icons.delete_outline, color: Colors.white, size: 20),
-            SizedBox(height: 3),
+          children: [
+            Icon(Icons.delete_outline, color: AppColors.surface, size: 20),
+            const SizedBox(height: 3),
             Text('Sil',
                 style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600)),
+                    color: AppColors.surface,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500)),
           ],
         ),
       ),
@@ -283,7 +258,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(AppRadius.lg),
           border: Border.all(color: AppColors.glassBorder),
         ),
         child: Column(
@@ -294,11 +269,11 @@ class _GoalsScreenState extends State<GoalsScreen> {
                   width: 42,
                   height: 42,
                   decoration: BoxDecoration(
-                      color: barColor.withValues(alpha: 0.14),
-                      borderRadius: BorderRadius.circular(13)),
-                  child: Icon(_icon(index), size: 20, color: barColor),
+                      color: barColor.withValues(alpha: 0.12),
+                      shape: BoxShape.circle),
+                  child: Icon(_icon(index), size: 19, color: barColor),
                 ),
-                const SizedBox(width: 13),
+                const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -310,91 +285,64 @@ class _GoalsScreenState extends State<GoalsScreen> {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w700,
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w500,
                                     color: AppColors.onSurface)),
                           ),
                           if (complete) ...[
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                  color: _okColor.withValues(alpha: 0.16),
-                                  borderRadius: BorderRadius.circular(99)),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.check,
-                                      size: 11, color: _okColor),
-                                  const SizedBox(width: 3),
-                                  Text('Tamamlandı',
-                                      style: TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.w700,
-                                          color: _okColor)),
-                                ],
-                              ),
-                            ),
+                            const SizedBox(width: 10),
+                            Icon(Icons.check_circle,
+                                size: 14, color: AppColors.positive),
+                            const SizedBox(width: 4),
+                            Eyebrow('Tamamlandı',
+                                size: 10, color: AppColors.positive),
                           ],
                         ],
                       ),
-                      const SizedBox(height: 3),
-                      Row(
-                        children: [
-                          Text(money(g.currentAmount.clamp(0, g.targetAmount)),
-                              style: TextStyle(
-                                  fontSize: 12.5,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.onSurface,
-                                  fontFeatures: kTnum)),
-                          Text(' / ${money(g.targetAmount)}',
-                              style: TextStyle(
-                                  fontSize: 12.5,
-                                  color: AppColors.outline,
-                                  fontFeatures: kTnum)),
-                        ],
+                      const SizedBox(height: 4),
+                      Text.rich(
+                        TextSpan(children: [
+                          TextSpan(
+                              text: money(g.currentAmount.clamp(0, g.targetAmount))),
+                          TextSpan(
+                              text: ' / ${money(g.targetAmount)}',
+                              style:
+                                  TextStyle(color: AppColors.onSurfaceVariant)),
+                        ]),
+                        style: AppText.mono(size: 13),
                       ),
                     ],
                   ),
                 ),
                 Text('%$pct',
-                    style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w800,
-                        color: complete ? _okColor : AppColors.onSurface,
-                        fontFeatures: kTnum)),
+                    style: AppText.mono(
+                        size: 16,
+                        color: complete ? AppColors.positive : AppColors.onSurface)),
               ],
             ),
             const SizedBox(height: 14),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(5),
-              child: TweenAnimationBuilder<double>(
-                tween: Tween(begin: 0, end: g.progress.clamp(0, 1)),
-                duration: const Duration(milliseconds: 800),
-                curve: Curves.easeOutCubic,
-                builder: (context, v, _) => LinearProgressIndicator(
-                  value: v,
-                  minHeight: 8,
-                  backgroundColor: AppColors.surfaceContainer,
-                  color: barColor,
-                ),
-              ),
-            ),
-            const SizedBox(height: 14),
+            ExBar(value: g.progress, color: barColor),
+            const SizedBox(height: 16),
             if (complete)
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 11),
+                padding: const EdgeInsets.symmetric(vertical: 12),
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                    color: _okColor.withValues(alpha: 0.10),
-                    borderRadius: BorderRadius.circular(12)),
-                child: Text('Hedefe ulaşıldı 🎉',
-                    style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: _okColor)),
+                    color: AppColors.positive.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(AppRadius.pill)),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.flag_outlined, size: 17, color: AppColors.positive),
+                    const SizedBox(width: 8),
+                    Text('Hedefe ulaşıldı',
+                        style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.positive)),
+                  ],
+                ),
               )
             else
               Row(
@@ -403,36 +351,28 @@ class _GoalsScreenState extends State<GoalsScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Kalan',
-                          style: TextStyle(
-                              fontSize: 11, color: AppColors.outline)),
-                      Text(money(g.remaining),
-                          style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.onSurface,
-                              fontFeatures: kTnum)),
+                      const Eyebrow('Kalan', size: 10),
+                      const SizedBox(height: 4),
+                      Text(money(g.remaining), style: AppText.mono(size: 15)),
                     ],
                   ),
                   Press(
                     onTap: () => _openContribute(g, color),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 10),
+                      height: 44,
+                      padding: const EdgeInsets.symmetric(horizontal: 18),
                       decoration: BoxDecoration(
-                          color: AppColors.surface,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                              color: AppColors.surfaceContainerHigh)),
+                          borderRadius: BorderRadius.circular(AppRadius.pill),
+                          border: Border.all(color: AppColors.glassBorder)),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.add, size: 15, color: color),
+                          Icon(Icons.add, size: 17, color: AppColors.primary),
                           const SizedBox(width: 6),
-                          Text('Katkı Ekle',
+                          Text('Katkı ekle',
                               style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w500,
                                   color: AppColors.onSurface)),
                         ],
                       ),
@@ -448,7 +388,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
 
   Widget _empty() {
     return Padding(
-      padding: const EdgeInsets.only(top: 50),
+      padding: const EdgeInsets.only(top: 40),
       child: Column(
         children: [
           Container(
@@ -456,40 +396,41 @@ class _GoalsScreenState extends State<GoalsScreen> {
             height: 72,
             decoration: BoxDecoration(
                 color: AppColors.surface,
-                borderRadius: BorderRadius.circular(22),
+                shape: BoxShape.circle,
                 border: Border.all(color: AppColors.glassBorder)),
             child: Icon(Icons.savings_outlined,
-                size: 32, color: AppColors.outline),
+                size: 30, color: AppColors.onSurfaceVariant),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 20),
           Text('Henüz hedefin yok',
               style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w400,
                   color: AppColors.onSurface)),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Text(
               'İlk tasarruf hedefini oluştur ve birikimlerini takip etmeye başla.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                  fontSize: 13, height: 1.5, color: AppColors.outline)),
-          const SizedBox(height: 20),
+                  fontSize: 16, height: 1.5, color: AppColors.onSurfaceVariant)),
+          const SizedBox(height: 24),
           Press(
             onTap: _openAdd,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 13),
+              height: 54,
+              padding: const EdgeInsets.symmetric(horizontal: 26),
               decoration: BoxDecoration(
                   color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(14)),
+                  borderRadius: BorderRadius.circular(AppRadius.pill)),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.add, size: 17, color: AppColors.onPrimary),
-                  const SizedBox(width: 7),
-                  Text('İlk Hedefini Ekle',
+                  Icon(Icons.add, size: 19, color: AppColors.onPrimary),
+                  const SizedBox(width: 8),
+                  Text('İlk hedefini ekle',
                       style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
                           color: AppColors.onPrimary)),
                 ],
               ),
@@ -513,7 +454,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
             decoration: BoxDecoration(
               color: AppColors.surface,
               borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(24)),
+                  const BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
               border: Border.all(color: AppColors.glassBorder),
             ),
             padding: const EdgeInsets.fromLTRB(24, 10, 24, 28),
@@ -525,10 +466,10 @@ class _GoalsScreenState extends State<GoalsScreen> {
                   child: Container(
                     width: 40,
                     height: 4,
-                    margin: const EdgeInsets.only(bottom: 18),
+                    margin: const EdgeInsets.only(bottom: 20),
                     decoration: BoxDecoration(
                         color: AppColors.surfaceContainerHigh,
-                        borderRadius: BorderRadius.circular(99)),
+                        borderRadius: BorderRadius.circular(AppRadius.pill)),
                   ),
                 ),
                 builder(ctx, setSheet),
@@ -542,22 +483,32 @@ class _GoalsScreenState extends State<GoalsScreen> {
 
   Widget _sheetTitle(BuildContext ctx, String title) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.only(bottom: 22),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Flexible(
             child: Text(title,
-                maxLines: 1,
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w700,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w400,
+                    letterSpacing: -0.4,
                     color: AppColors.onSurface)),
           ),
+          const SizedBox(width: 12),
           Press(
             onTap: () => Navigator.pop(ctx),
-            child: Icon(Icons.close, size: 22, color: AppColors.outline),
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.glassBorder)),
+              child:
+                  Icon(Icons.close, size: 20, color: AppColors.onSurfaceVariant),
+            ),
           ),
         ],
       ),
@@ -565,38 +516,41 @@ class _GoalsScreenState extends State<GoalsScreen> {
   }
 
   Widget _fieldLabel(String t) => Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Text(t,
-            style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.4,
-                color: AppColors.outline)),
+        padding: const EdgeInsets.only(bottom: 10),
+        child: Eyebrow(t, size: 11),
       );
 
   Widget _inputBox({required Widget child}) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
         decoration: BoxDecoration(
-          color: AppColors.background,
-          borderRadius: BorderRadius.circular(13),
+          color: AppColors.surfaceBright,
+          borderRadius: BorderRadius.circular(AppRadius.md),
           border: Border.all(color: AppColors.glassBorder),
         ),
         child: child,
       );
 
+  static const _bare = InputDecoration(
+    isCollapsed: true,
+    filled: false,
+    border: InputBorder.none,
+    enabledBorder: InputBorder.none,
+    focusedBorder: InputBorder.none,
+  );
+
   Widget _primaryButton(String label, VoidCallback onTap) => Press(
         onTap: onTap,
         child: Container(
           width: double.infinity,
-          height: 52,
+          height: 54,
           alignment: Alignment.center,
           decoration: BoxDecoration(
               color: AppColors.primary,
-              borderRadius: BorderRadius.circular(14)),
+              borderRadius: BorderRadius.circular(AppRadius.pill)),
           child: Text(label,
               style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
                   color: AppColors.onPrimary)),
         ),
       );
@@ -607,50 +561,40 @@ class _GoalsScreenState extends State<GoalsScreen> {
     await _sheet((ctx, setSheet) => Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _sheetTitle(ctx, 'Yeni Hedef'),
-            _fieldLabel('HEDEF ADI'),
+            _sheetTitle(ctx, 'Yeni hedef'),
+            _fieldLabel('Hedef adı'),
             _inputBox(
               child: TextField(
                 controller: nameCtrl,
-                style: TextStyle(fontSize: 14, color: AppColors.onSurface),
-                decoration: InputDecoration(
-                    isCollapsed: true,
-                    border: InputBorder.none,
-                    hintText: 'örn. Yeni Telefon',
+                style: TextStyle(fontSize: 17, color: AppColors.onSurface),
+                decoration: _bare.copyWith(
+                    hintText: 'örn. Yeni telefon',
                     hintStyle:
-                        TextStyle(color: AppColors.outline, fontSize: 14)),
+                        TextStyle(color: AppColors.outline, fontSize: 17)),
               ),
             ),
-            const SizedBox(height: 18),
-            _fieldLabel('HEDEF TUTAR (${currencyNotifier.value})'),
+            const SizedBox(height: 20),
+            _fieldLabel('Hedef tutar (${currencyNotifier.value})'),
             _inputBox(
               child: Row(
                 children: [
                   Text(currencyNotifier.value,
-                      style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.onSurfaceVariant)),
-                  const SizedBox(width: 8),
+                      style: AppText.mono(
+                          size: 18, color: AppColors.onSurfaceVariant)),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: TextField(
                       controller: targetCtrl,
                       keyboardType: TextInputType.number,
-                      style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.onSurface),
-                      decoration: const InputDecoration(
-                          isCollapsed: true,
-                          border: InputBorder.none,
-                          hintText: '0'),
+                      style: AppText.mono(size: 18),
+                      decoration: _bare.copyWith(hintText: '0'),
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 24),
-            _primaryButton('Hedef Oluştur', () async {
+            const SizedBox(height: 26),
+            _primaryButton('Hedef oluştur', () async {
               final name = nameCtrl.text.trim();
               final enteredTarget =
                   double.tryParse(targetCtrl.text.replaceAll(',', '.'));
@@ -677,39 +621,29 @@ class _GoalsScreenState extends State<GoalsScreen> {
     await _sheet((ctx, setSheet) => Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _sheetTitle(ctx, '${g.title} — Katkı Ekle'),
+            _sheetTitle(ctx, '${g.title}: katkı ekle'),
             Padding(
-              padding: const EdgeInsets.only(bottom: 18),
+              padding: const EdgeInsets.only(bottom: 20),
               child: Text(
                   'Kalan ${money(g.remaining)} · Hedef ${money(g.targetAmount)}',
-                  style: TextStyle(
-                      fontSize: 12.5,
-                      color: AppColors.outline,
-                      fontFeatures: kTnum)),
+                  style: AppText.mono(
+                      size: 14, color: AppColors.onSurfaceVariant)),
             ),
-            _fieldLabel('TUTAR (${currencyNotifier.value})'),
+            _fieldLabel('Tutar (${currencyNotifier.value})'),
             _inputBox(
               child: Row(
                 children: [
                   Text(currencyNotifier.value,
-                      style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.onSurfaceVariant)),
-                  const SizedBox(width: 8),
+                      style: AppText.mono(
+                          size: 18, color: AppColors.onSurfaceVariant)),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: TextField(
                       controller: amtCtrl,
                       autofocus: true,
                       keyboardType: TextInputType.number,
-                      style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.onSurface),
-                      decoration: const InputDecoration(
-                          isCollapsed: true,
-                          border: InputBorder.none,
-                          hintText: '0'),
+                      style: AppText.mono(size: 18),
+                      decoration: _bare.copyWith(hintText: '0'),
                     ),
                   ),
                 ],
@@ -724,24 +658,20 @@ class _GoalsScreenState extends State<GoalsScreen> {
                         onTap: () =>
                             setSheet(() => amtCtrl.text = q.toStringAsFixed(0)),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 9),
+                          height: 40,
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          alignment: Alignment.center,
                           decoration: BoxDecoration(
-                              color: AppColors.surface,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                  color: AppColors.surfaceContainerHigh)),
-                          child: Text('+${currencyNotifier.value}${q.toStringAsFixed(0)}',
-                              style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.onSurface,
-                                  fontFeatures: kTnum)),
+                              borderRadius: BorderRadius.circular(AppRadius.pill),
+                              border: Border.all(color: AppColors.glassBorder)),
+                          child: Text(
+                              '+${currencyNotifier.value}${q.toStringAsFixed(0)}',
+                              style: AppText.mono(size: 14)),
                         ),
                       ))
                   .toList(),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 26),
             _primaryButton('Ekle', () async {
               final enteredAmt = double.tryParse(amtCtrl.text.replaceAll(',', '.'));
               if (enteredAmt == null || enteredAmt <= 0) return;
@@ -754,88 +684,9 @@ class _GoalsScreenState extends State<GoalsScreen> {
         ));
   }
 
-  Future<bool> _confirmDelete(GoalModel g) async {
-    return await showDialog<bool>(
-          context: context,
-          builder: (ctx) => Dialog(
-            backgroundColor: AppColors.surface,
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-                side: BorderSide(color: AppColors.glassBorder)),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                        color: AppColors.error.withValues(alpha: 0.14),
-                        shape: BoxShape.circle),
-                    child: Icon(Icons.delete_outline,
-                        color: AppColors.error, size: 22),
-                  ),
-                  const SizedBox(height: 14),
-                  Text('Hedefi sil?',
-                      style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.onSurface)),
-                  const SizedBox(height: 6),
-                  Text('"${g.title}" hedefi ve birikimi silinecek.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                          fontSize: 13,
-                          height: 1.5,
-                          color: AppColors.onSurfaceVariant)),
-                  const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Press(
-                          onTap: () => Navigator.pop(ctx, false),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 13),
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                                color: AppColors.surface,
-                                borderRadius: BorderRadius.circular(13),
-                                border: Border.all(
-                                    color: AppColors.surfaceContainerHigh)),
-                            child: Text('Vazgeç',
-                                style: TextStyle(
-                                    fontSize: 13.5,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.onSurface)),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Press(
-                          onTap: () => Navigator.pop(ctx, true),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 13),
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                                color: AppColors.error,
-                                borderRadius: BorderRadius.circular(13)),
-                            child: const Text('Sil',
-                                style: TextStyle(
-                                    fontSize: 13.5,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.white)),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ) ??
-        false;
+  Future<bool> _confirmDelete(GoalModel g) {
+    return showConfirmDialog(context,
+        title: 'Hedefi sil?',
+        message: '"${g.title}" hedefi ve birikimi silinecek.');
   }
 }
