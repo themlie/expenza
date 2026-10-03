@@ -6,6 +6,7 @@ import '../api_client.dart';
 import '../categories.dart';
 import '../models.dart';
 import '../theme.dart';
+import 'alerts_screen.dart';
 import 'goals_screen.dart';
 import 'chat_screen.dart';
 
@@ -34,7 +35,8 @@ class _DashData {
   final List<TransactionModel> recent;
   final List<GoalModel> goals;
   final String name;
-  _DashData(this.summary, this.recent, this.goals, this.name);
+  final List<AlertModel> alerts;
+  _DashData(this.summary, this.recent, this.goals, this.name, this.alerts);
 }
 
 class DashboardScreen extends StatefulWidget {
@@ -63,11 +65,12 @@ class DashboardScreenState extends State<DashboardScreen> {
       api.getTransactions(limit: 6),
       api.getGoals(),
       api.getMe(),
+      api.getAlerts(),
     ]);
     final me = r[3] as ({String email, String displayName});
     final name = me.displayName.isNotEmpty ? me.displayName : 'Kullanıcı';
     return _DashData(r[0] as SummaryModel, r[1] as List<TransactionModel>,
-        r[2] as List<GoalModel>, name);
+        r[2] as List<GoalModel>, name, r[4] as List<AlertModel>);
   }
 
   void refresh() => setState(() { _future = _load(); });
@@ -103,7 +106,11 @@ class DashboardScreenState extends State<DashboardScreen> {
             return ListView(
               padding: const EdgeInsets.fromLTRB(20, 56, 20, 120),
               children: [
-                Rise(child: _header(d.name)),
+                Rise(child: _header(d.name, d.alerts.length)),
+                if (d.alerts.isNotEmpty) ...[
+                  const SizedBox(height: 20),
+                  Rise(delayMs: 40, child: _alertBanner(d.alerts)),
+                ],
                 const SizedBox(height: 40),
                 Rise(delayMs: 80, child: _balance(s.balance)),
                 const SizedBox(height: 24),
@@ -159,7 +166,93 @@ class DashboardScreenState extends State<DashboardScreen> {
   }
 
   // ---- Başlık ----
-  Widget _header(String name) {
+  Future<void> _openAlerts() async {
+    await Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => const AlertsScreen()));
+    refresh(); // kapatılan uyarılar rozetten düşsün
+  }
+
+  /// En önemli uyarı (backend önem sırasına göre döner); dokununca Uyarılar açılır.
+  Widget _alertBanner(List<AlertModel> alerts) {
+    final a = alerts.first;
+    final color = alertColor(a.level);
+    return Press(
+      onTap: _openAlerts,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          border: Border.all(color: color.withValues(alpha: 0.35)),
+        ),
+        child: Row(
+          children: [
+            Icon(alertIcon(a.kind), size: 19, color: color),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(a.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.onSurface)),
+                  const SizedBox(height: 2),
+                  Text(
+                      alerts.length > 1
+                          ? '${a.message} · +${alerts.length - 1} uyarı daha'
+                          : a.message,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          fontSize: 13.5, color: AppColors.onSurfaceVariant)),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right, size: 20, color: AppColors.outline),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _bell(int count) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        _circleButton(Icons.notifications_none, _openAlerts),
+        if (count > 0)
+          Positioned(
+            right: -2,
+            top: -2,
+            child: IgnorePointer(
+              child: Container(
+                constraints: const BoxConstraints(minWidth: 18),
+                height: 18,
+                padding: const EdgeInsets.symmetric(horizontal: 5),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: AppColors.error,
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
+                  border: Border.all(color: AppColors.background, width: 2),
+                ),
+                child: Text(count > 9 ? '9+' : '$count',
+                    style: const TextStyle(
+                        fontSize: 10,
+                        height: 1,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white)),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _header(String name, int alertCount) {
     final isDark = themeModeNotifier.value == ThemeMode.dark;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -182,6 +275,8 @@ class DashboardScreenState extends State<DashboardScreen> {
             ],
           ),
         ),
+        _bell(alertCount),
+        const SizedBox(width: 8),
         _circleButton(Icons.psychology_outlined, () {
           Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => const ChatScreen()),

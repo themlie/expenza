@@ -8,7 +8,7 @@ import '../api_client.dart';
 import '../models.dart';
 import '../ocr_service.dart';
 import '../theme.dart';
-import 'dashboard_screen.dart' show categoryColor, categoryIcon;
+import 'dashboard_screen.dart' show categoryColor, categoryIcon, money;
 
 /// Harcama/Gelir ekleme veya düzenleme.
 /// Gider notu yazıldıkça GERÇEK eğitilmiş model (/ml/categorize) canlı öneri verir;
@@ -202,6 +202,29 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     }
   }
 
+  /// Kayıt bir bütçeyi %80'in ya da %100'ün üstüne çıkardıysa uyarı gösterir. Eşik bu
+  /// kayıtla geçildiyse ([BudgetAlertModel.crossed]) uyarı daha uzun kalır.
+  static void _showBudgetAlert(
+      ScaffoldMessengerState messenger, List<BudgetAlertModel> alerts) {
+    if (alerts.isEmpty) return;
+    final a = alerts.firstWhere((x) => x.exceeded, orElse: () => alerts.first);
+    final more = alerts.length > 1 ? ' (+${alerts.length - 1} bütçe daha)' : '';
+    messenger.showSnackBar(SnackBar(
+      duration: Duration(seconds: a.crossed ? 6 : 3),
+      content: Row(
+        children: [
+          Icon(a.exceeded ? Icons.error_outline : Icons.warning_amber_rounded,
+              color: a.exceeded ? AppColors.error : AppColors.warn, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+                '${a.message} ${money(a.spent)} / ${money(a.limit)}$more'),
+          ),
+        ],
+      ),
+    ));
+  }
+
   void _toast(String msg, {bool error = false}) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Row(
@@ -229,8 +252,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     final occurredOn = DateFormat('yyyy-MM-dd').format(_date);
     setState(() => _busy = true);
     try {
+      final TransactionModel saved;
       if (_isEdit) {
-        await ApiClient.instance.updateTransaction(
+        saved = await ApiClient.instance.updateTransaction(
           widget.existing!.id,
           amount: amountInTry,
           type: _type,
@@ -241,7 +265,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           isRecurring: _isRecurring,
         );
       } else {
-        await ApiClient.instance.addTransaction(
+        saved = await ApiClient.instance.addTransaction(
           amount: amountInTry,
           type: _type,
           category: _selectedCategory, // null → backend modelle/Diğer atar
@@ -252,7 +276,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           shownSuggestion: !_isIncome && !_suggesting ? _suggestion : null,
         );
       }
-      if (mounted) Navigator.of(context).pop(true);
+      if (!mounted) return;
+      // Uygulama düzeyindeki messenger: sayfa kapansa da uyarı görünmeye devam eder.
+      final messenger = ScaffoldMessenger.of(context);
+      Navigator.of(context).pop(true);
+      _showBudgetAlert(messenger, saved.budgetAlerts);
     } catch (e) {
       if (mounted) {
         setState(() => _busy = false);

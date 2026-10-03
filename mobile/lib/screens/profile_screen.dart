@@ -23,9 +23,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _future = _load();
-    ApiClient.instance.hasAiConsent().then((v) {
-      if (mounted) setState(() => _aiConsent = v);
+    // Yapay zekâ onayı ve uyarı tercihi sunucuda saklanır.
+    ApiClient.instance.getProfile().then((u) {
+      if (mounted) {
+        setState(() {
+          _aiConsent = u.aiConsent;
+          _notif = u.alertsEnabled;
+        });
+      }
     }).catchError((_) {});
+  }
+
+  Future<void> _setNotif(bool value) async {
+    setState(() => _notif = value);
+    try {
+      await ApiClient.instance.updateProfile(alertsEnabled: value);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _notif = !value);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(e.toString().replaceFirst('Exception: ', ''))));
+      }
+    }
   }
 
   Future<void> _setAiConsent(bool value) async {
@@ -429,8 +448,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             AppColors.warn,
             Icons.notifications_outlined,
             'Bildirimler',
-            subtitle: _notif ? 'Bütçe ve anomali uyarıları' : 'Kapalı',
-            trailing: _miniSwitch(_notif, (v) => setState(() => _notif = v)),
+            subtitle: _notif ? 'Bütçe, hedef ve ödeme uyarıları' : 'Kapalı',
+            trailing: _miniSwitch(_notif, _setNotif),
           ),
           if (_aiConsent != null) ...[
             _divider(),
