@@ -3,11 +3,9 @@ import 'package:flutter/material.dart';
 import '../api_client.dart';
 import '../models.dart';
 import '../theme.dart';
+import '../wordmark.dart';
 
-const _okColor = Color(0xFF46F1C5);
-const _infoColor = Color(0xFF6EA8FE);
-
-/// Profil — premium: kullanıcı kartı, finansal içgörüler, ayarlar, çıkış.
+/// Profil: kullanıcı kartı, finansal içgörüler, ayarlar, çıkış.
 class ProfileScreen extends StatefulWidget {
   final VoidCallback onLogout;
   const ProfileScreen({super.key, required this.onLogout});
@@ -74,74 +72,61 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 : 'Kullanıcı';
 
             return ListView(
-              padding: const EdgeInsets.fromLTRB(24, 56, 24, 120),
+              padding: const EdgeInsets.fromLTRB(20, 56, 20, 120),
               children: [
                 // Başlık
                 Rise(
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Profil',
-                          style: TextStyle(
-                              fontSize: 26,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: -0.6,
-                              height: 1,
-                              color: AppColors.onSurface)),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Eyebrow('Hesabın'),
+                          const SizedBox(height: 10),
+                          Text('Profil', style: AppText.display(size: 38)),
+                        ],
+                      ),
                       Container(
-                        width: 40,
-                        height: 40,
+                        width: 44,
+                        height: 44,
                         decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            border: Border.all(
-                                color: AppColors.surfaceContainer)),
+                            border: Border.all(color: AppColors.glassBorder)),
                         child: Icon(Icons.settings_outlined,
-                            size: 19, color: AppColors.onSurfaceVariant),
+                            size: 19, color: AppColors.onSurface),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 22),
+                const SizedBox(height: 28),
 
                 // Kullanıcı kartı
-                Rise(delayMs: 40, child: _userCard(name, me?.email ?? '')),
-                const SizedBox(height: 24),
+                Rise(delayMs: 80, child: _userCard(name, me?.email ?? '')),
+                const SizedBox(height: 36),
 
                 // İçgörüler
-                Rise(
-                  delayMs: 80,
-                  child: Text('Senin İçin İçgörüler',
-                      style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.onSurface)),
-                ),
-                const SizedBox(height: 12),
+                Rise(delayMs: 140, child: _sectionTitle('Senin için içgörüler')),
+                const SizedBox(height: 14),
                 if (snap.connectionState == ConnectionState.waiting)
                   Center(
                       child: Padding(
                     padding: const EdgeInsets.all(20),
-                    child: CircularProgressIndicator(
-                        color: AppColors.onSurface),
+                    child: CircularProgressIndicator(color: AppColors.primary),
                   ))
                 else if (insights.isEmpty)
                   _insightShell(AppColors.outline, Icons.info_outline,
                       'Birkaç işlem ekledikçe içgörüler burada görünecek.')
                 else
-                  ...insights.map(_insightCard),
-                const SizedBox(height: 26),
+                  for (var i = 0; i < insights.length; i++)
+                    Rise(delayMs: 180 + i * 60, child: _insightCard(insights[i])),
+                const SizedBox(height: 36),
 
                 // Ayarlar
-                Rise(
-                  delayMs: 140,
-                  child: Text('Ayarlar',
-                      style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.onSurface)),
-                ),
-                const SizedBox(height: 12),
-                Rise(delayMs: 160, child: _settings(isDark)),
+                Rise(delayMs: 240, child: _sectionTitle('Ayarlar')),
+                const SizedBox(height: 14),
+                Rise(delayMs: 280, child: _settings(isDark)),
                 const SizedBox(height: 18),
 
                 // Çıkış
@@ -151,11 +136,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     widget.onLogout();
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    height: 54,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
                       border: Border.all(color: AppColors.glassBorder),
                     ),
                     child: Row(
@@ -163,14 +147,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       children: [
                         Icon(Icons.logout, size: 18, color: AppColors.error),
                         const SizedBox(width: 9),
-                        Text('Çıkış Yap',
+                        Text('Çıkış yap',
                             style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
                                 color: AppColors.error)),
                       ],
                     ),
                   ),
+                ),
+                const SizedBox(height: 48),
+                Center(
+                  child: ExpenzaWordmark(
+                      height: 16, color: AppColors.onSurfaceVariant),
+                ),
+                const SizedBox(height: 10),
+                Center(
+                  child: Text('Kişisel finans takibi ve harcama analizi',
+                      style: TextStyle(
+                          fontSize: 14, color: AppColors.onSurfaceVariant)),
                 ),
               ],
             );
@@ -180,27 +175,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Widget _sectionTitle(String t) => Text(t,
+      style: TextStyle(
+          fontSize: 22,
+          fontWeight: FontWeight.w400,
+          letterSpacing: -0.4,
+          color: AppColors.onSurface));
+
   Widget _userCard(String name, String email) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.glassBorder),
-      ),
+    return GlassCard(
       child: Row(
         children: [
           Container(
-            width: 62,
-            height: 62,
+            width: 60,
+            height: 60,
             decoration: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: BorderRadius.circular(20)),
+                color: AppColors.primary, shape: BoxShape.circle),
             alignment: Alignment.center,
             child: Text(_initials(name),
                 style: TextStyle(
-                    fontSize: 23,
-                    fontWeight: FontWeight.w700,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w400,
+                    letterSpacing: 1,
                     color: AppColors.onPrimary)),
           ),
           const SizedBox(width: 16),
@@ -212,47 +208,48 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w500,
                         color: AppColors.onSurface)),
                 const SizedBox(height: 2),
                 Text(email,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 13, color: AppColors.outline)),
-                const SizedBox(height: 8),
+                    style: TextStyle(
+                        fontSize: 15, color: AppColors.onSurfaceVariant)),
+                const SizedBox(height: 10),
                 Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                      color: _okColor.withValues(alpha: 0.14),
-                      borderRadius: BorderRadius.circular(99)),
+                      color: AppColors.positive.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(AppRadius.pill)),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.check, size: 12, color: _okColor),
+                      Icon(Icons.check, size: 13, color: AppColors.positive),
                       const SizedBox(width: 5),
                       Text('Premium üye',
                           style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: _okColor)),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.positive)),
                     ],
                   ),
                 ),
               ],
             ),
           ),
-          Icon(Icons.chevron_right, size: 20, color: AppColors.outline),
+          Icon(Icons.chevron_right, size: 20, color: AppColors.onSurfaceVariant),
         ],
       ),
     );
   }
 
   Color _toneColor(String tone) => switch (tone) {
-        'good' => _okColor,
+        'good' => AppColors.positive,
         'warn' => AppColors.warn,
-        _ => _infoColor,
+        _ => AppColors.info,
       };
 
   IconData _iconFor(String name) => switch (name) {
@@ -273,25 +270,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _insightShell(Color color, IconData icon, String text,
       {String? title}) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 11),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(color: AppColors.glassBorder),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 36,
-            height: 36,
+            width: 38,
+            height: 38,
             decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.14),
-                borderRadius: BorderRadius.circular(11)),
+                color: color.withValues(alpha: 0.12), shape: BoxShape.circle),
             child: Icon(icon, size: 18, color: color),
           ),
-          const SizedBox(width: 13),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -299,14 +295,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 if (title != null) ...[
                   Text(title,
                       style: TextStyle(
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w700,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w500,
                           color: AppColors.onSurface)),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 4),
                 ],
                 Text(text,
                     style: TextStyle(
-                        fontSize: 13,
+                        fontSize: 15,
                         height: 1.5,
                         color: AppColors.onSurfaceVariant)),
               ],
@@ -323,22 +319,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(AppRadius.lg),
             side: BorderSide(color: AppColors.glassBorder)),
         title: Text(title,
             style: TextStyle(
                 color: AppColors.onSurface,
                 fontSize: 17,
-                fontWeight: FontWeight.bold)),
+                fontWeight: FontWeight.w500)),
         content: Text(message,
             style: TextStyle(
-                color: AppColors.onSurfaceVariant, fontSize: 13, height: 1.5)),
+                color: AppColors.onSurfaceVariant, fontSize: 16, height: 1.5)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: Text('Kapat',
                 style: TextStyle(
-                    color: AppColors.primary, fontWeight: FontWeight.bold)),
+                    color: AppColors.primary, fontWeight: FontWeight.w500)),
           ),
         ],
       ),
@@ -352,13 +348,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return AlertDialog(
           backgroundColor: AppColors.surface,
           shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(AppRadius.lg),
               side: BorderSide(color: AppColors.glassBorder)),
-          title: Text('Para Birimi Seçin',
+          title: Text('Para birimi seç',
               style: TextStyle(
                   color: AppColors.onSurface,
                   fontSize: 17,
-                  fontWeight: FontWeight.bold)),
+                  fontWeight: FontWeight.w500)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -376,7 +372,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _currencyOption(BuildContext context, String label, String symbol) {
     final active = currencyNotifier.value == symbol;
     return ListTile(
-      title: Text(label, style: TextStyle(color: AppColors.onSurface, fontSize: 14)),
+      title: Text(label, style: TextStyle(color: AppColors.onSurface, fontSize: 17)),
       trailing: active ? Icon(Icons.check, color: AppColors.primary, size: 18) : null,
       onTap: () {
         currencyNotifier.value = symbol;
@@ -399,7 +395,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(color: AppColors.glassBorder),
       ),
       child: Column(
@@ -409,7 +405,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             builder: (context, mode, _) {
               final dark = mode == ThemeMode.dark;
               return _settingRow(
-                _infoColor,
+                AppColors.info,
                 dark ? Icons.dark_mode_outlined : Icons.light_mode_outlined,
                 'Tema',
                 subtitle: dark ? 'Koyu mod' : 'Açık mod',
@@ -418,19 +414,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
             },
           ),
           _divider(),
-          _settingRow(_okColor, Icons.attach_money, 'Para Birimi',
+          _settingRow(AppColors.positive, Icons.attach_money, 'Para birimi',
               value: curLabel, chevron: true, onTap: () {
             _showCurrencyDialog(context);
           }),
           _divider(),
-          _settingRow(const Color(0xFFB68CF0), Icons.grid_view, 'Kategoriler',
+          _settingRow(AppColors.catPurple, Icons.grid_view, 'Kategoriler',
               value: '${kCategories.length} kategori', chevron: true, onTap: () {
             _showInfoDialog(context, 'Kategoriler',
                 'Aktif Kategoriler:\n${kCategories.map((c) => '• $c').join('\n')}');
           }),
           _divider(),
           _settingRow(
-            const Color(0xFFF0B36B),
+            AppColors.warn,
             Icons.notifications_outlined,
             'Bildirimler',
             subtitle: _notif ? 'Bütçe ve anomali uyarıları' : 'Kapalı',
@@ -439,7 +435,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           if (_aiConsent != null) ...[
             _divider(),
             _settingRow(
-              _infoColor,
+              AppColors.info,
               Icons.psychology_outlined,
               'Yapay zekâ veri paylaşımı',
               subtitle: _aiConsent!
@@ -457,7 +453,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _divider() => Padding(
-        padding: const EdgeInsets.only(left: 64),
+        padding: const EdgeInsets.only(left: 66),
         child: Container(height: 1, color: AppColors.glassBorder),
       );
 
@@ -468,15 +464,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
       Widget? trailing,
       VoidCallback? onTap}) {
     final row = Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       child: Row(
         children: [
           Container(
-            width: 34,
-            height: 34,
+            width: 36,
+            height: 36,
             decoration: BoxDecoration(
-                color: iconColor.withValues(alpha: 0.14),
-                borderRadius: BorderRadius.circular(10)),
+                color: iconColor.withValues(alpha: 0.12), shape: BoxShape.circle),
             child: Icon(icon, size: 17, color: iconColor),
           ),
           const SizedBox(width: 14),
@@ -486,13 +481,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 Text(title,
                     style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w400,
                         color: AppColors.onSurface)),
                 if (subtitle != null) ...[
-                  const SizedBox(height: 1),
+                  const SizedBox(height: 2),
                   Text(subtitle,
-                      style: TextStyle(fontSize: 12, color: AppColors.outline)),
+                      style: TextStyle(
+                          fontSize: 14, color: AppColors.onSurfaceVariant)),
                 ],
               ],
             ),
@@ -500,12 +496,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
           if (value != null)
             Text(value,
                 style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w400,
                     color: AppColors.onSurfaceVariant)),
           if (chevron) ...[
             const SizedBox(width: 4),
-            Icon(Icons.chevron_right, size: 18, color: AppColors.outline),
+            Icon(Icons.chevron_right, size: 18, color: AppColors.onSurfaceVariant),
           ],
           ?trailing,
         ],
@@ -522,17 +518,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return GestureDetector(
       onTap: () => onChanged(!value),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        width: 44,
-        height: 26,
+        duration: AppMotion.fast,
+        width: 46,
+        height: 28,
         padding: const EdgeInsets.all(3),
         decoration: BoxDecoration(
           color: value ? AppColors.primary : AppColors.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(99),
+          borderRadius: BorderRadius.circular(AppRadius.pill),
         ),
         child: AnimatedAlign(
-          duration: const Duration(milliseconds: 180),
-          curve: Curves.easeOut,
+          duration: AppMotion.medium,
+          curve: AppMotion.curve,
           alignment: value ? Alignment.centerRight : Alignment.centerLeft,
           child: Container(
             width: 20,
