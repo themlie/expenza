@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import 'api_client.dart';
@@ -47,6 +48,10 @@ class ExpenzaApp extends StatelessWidget {
               navigatorKey: navigatorKey,
               title: 'Expenza',
               debugShowCheckedModeBanner: false,
+              // Takvim, saat ve hazır metinler (ör. tarih seçici) Türkçe.
+              locale: const Locale('tr', 'TR'),
+              supportedLocales: const [Locale('tr', 'TR')],
+              localizationsDelegates: GlobalMaterialLocalizations.delegates,
               theme: AppTheme.fromMode(isDark),
               // Geniş ekranlarda (web/masaüstü) uygulamayı telefon genişliğinde bir
               // çerçeveye alıp ortala; dar ekranlarda (telefon) tam genişlik.

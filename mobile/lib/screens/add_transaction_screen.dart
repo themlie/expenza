@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 
 import '../api_client.dart';
 import '../models.dart';
@@ -31,15 +32,34 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   CategorySuggestion? _suggestion;
   bool _suggesting = false;
   bool _isRecurring = false;
+  late DateTime _date = _today();
 
   bool get _isEdit => widget.existing != null;
   bool get _isIncome => _type == 'income';
+
+  static DateTime _today() {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day);
+  }
+
+  // Backend en fazla 10 yıl geriye izin veriyor.
+  static DateTime _earliest() {
+    final t = _today();
+    return DateTime(t.year - 10, t.month, t.day).add(const Duration(days: 3));
+  }
+
+  /// Seçilen tarihten bu yana kaç ay geçti (tekrarlayan işlemde aradaki aylar eklenir).
+  int get _monthsBack {
+    final t = _today();
+    return (t.year - _date.year) * 12 + t.month - _date.month;
+  }
 
   @override
   void initState() {
     super.initState();
     final ex = widget.existing;
     if (ex != null) {
+      _date = DateTime.tryParse(ex.occurredOn) ?? _today();
       final displayAmount = CurrencyService.convertFromTry(ex.amount, currencyNotifier.value);
       _amount.text = displayAmount.toStringAsFixed(displayAmount % 1 == 0 ? 0 : 2);
       _note.text = ex.note;
@@ -206,6 +226,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       _toast('Lütfen kategori seç', error: true);
       return;
     }
+    final occurredOn = DateFormat('yyyy-MM-dd').format(_date);
     setState(() => _busy = true);
     try {
       if (_isEdit) {
@@ -216,6 +237,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           category: _selectedCategory ??
               (_isIncome ? 'Diğer' : widget.existing!.category),
           note: _note.text.trim(),
+          occurredOn: occurredOn,
           isRecurring: _isRecurring,
         );
       } else {
@@ -224,6 +246,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           type: _type,
           category: _selectedCategory, // null → backend modelle/Diğer atar
           note: _note.text.trim(),
+          occurredOn: occurredOn,
           isRecurring: _isRecurring,
           // Öneri hâlâ yükleniyorsa (not değişmiş olabilir) gönderilmez.
           shownSuggestion: !_isIncome && !_suggesting ? _suggestion : null,
@@ -424,7 +447,22 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                   child: _suggestionCard(),
                 ),
               const SizedBox(height: 18),
+              _dateRow(),
+              const SizedBox(height: 10),
               _recurringRow(),
+              // Yeni seri geçmiş bir ayda başlıyorsa backend aradaki ayları da ekler.
+              if (_isRecurring &&
+                  !(widget.existing?.isRecurring ?? false) &&
+                  _monthsBack > 0)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(6, 10, 6, 0),
+                  child: Text(
+                    'Geçmiş bir tarih seçtin: o tarihten bu yana her ay için '
+                    'bir kayıt eklenecek ($_monthsBack ay).',
+                    style: TextStyle(
+                        fontSize: 14, color: AppColors.onSurfaceVariant),
+                  ),
+                ),
             ],
           ),
 
@@ -720,6 +758,82 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             ],
           ],
         ),
+      ),
+    );
+  }
+
+  Future<void> _pickDate() async {
+    final today = _today();
+    final earliest = _earliest();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _date.isAfter(today)
+          ? today
+          : (_date.isBefore(earliest) ? earliest : _date),
+      firstDate: earliest,
+      lastDate: today,
+      helpText: 'İşlem tarihi',
+      cancelText: 'Vazgeç',
+      confirmText: 'Seç',
+    );
+    if (picked != null) setState(() => _date = picked);
+  }
+
+  Widget _dateRow() {
+    final today = _today();
+    final yesterday = today.subtract(const Duration(days: 1));
+    final label = DateFormat(
+            _date.year == today.year ? 'd MMMM, EEEE' : 'd MMMM y, EEEE', 'tr_TR')
+        .format(_date);
+    return Press(
+      onTap: _pickDate,
+      child: GlassCard(
+        padding: const EdgeInsets.fromLTRB(18, 12, 12, 12),
+        child: Row(
+          children: [
+            Icon(Icons.calendar_today_outlined,
+                size: 19, color: AppColors.onSurfaceVariant),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Tarih',
+                      style: TextStyle(fontSize: 16, color: AppColors.onSurface)),
+                  const SizedBox(height: 2),
+                  Text(label,
+                      style: TextStyle(
+                          fontSize: 14, color: AppColors.onSurfaceVariant)),
+                ],
+              ),
+            ),
+            _dayChip('Dün', yesterday),
+            const SizedBox(width: 6),
+            _dayChip('Bugün', today),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _dayChip(String text, DateTime day) {
+    final selected = _date == day;
+    return Press(
+      onTap: () => setState(() => _date = day),
+      child: AnimatedContainer(
+        duration: AppMotion.fast,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+          border: Border.all(
+              color: selected ? AppColors.primary : AppColors.glassBorder),
+        ),
+        child: Text(text,
+            style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: selected ? AppColors.onPrimary : AppColors.onSurface)),
       ),
     );
   }
