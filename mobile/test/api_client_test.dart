@@ -1,6 +1,7 @@
 // ApiClient oturum mantığı: kayıtlı oturumun geri yüklenmesi, 401'de token yenileme,
 // paralel isteklerde tek yenileme, oturumun düşmesi ve çıkış. Backend sahte bir HTTP
 // istemcisiyle taklit edilir; güvenli depo paketin test deposuyla değiştirilir.
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -20,6 +21,8 @@ class FakeBackend {
   final validRefresh = <String>{};
   int refreshCalls = 0;
   int logoutCalls = 0;
+  final calls = <String, int>{}; // "GET /auth/me" -> sayı
+  Completer<void>? holdReads; // doluysa GET istekleri tamamlanınca cevap döner
 
   String issueRefresh() {
     final token = 'r${++_n}';
@@ -42,6 +45,9 @@ class FakeBackend {
           headers: {'content-type': 'application/json'});
 
   Future<http.Response> handle(http.Request req) async {
+    final call = '${req.method} ${req.url.path}';
+    calls[call] = (calls[call] ?? 0) + 1;
+    if (req.method == 'GET' && holdReads != null) await holdReads!.future;
     switch (req.url.path) {
       case '/auth/login':
         return _json(_pair());
@@ -59,6 +65,16 @@ class FakeBackend {
     }
     if (req.headers['Authorization'] != 'Bearer $validAccess') {
       return _json({'detail': 'Geçersiz kimlik bilgisi'}, 401);
+    }
+    if (req.url.path == '/auth/me') {
+      return _json({
+        'id': 1,
+        'email': 'a@b.co',
+        'display_name': 'A',
+        'created_at': '2026-10-01T10:00:00',
+        'alerts_enabled': true,
+        'ai_consent_at': null,
+      });
     }
     return _json([]);
   }
@@ -143,6 +159,35 @@ void main() {
       expect(api.session.value, isFalse);
       expect(backend.logoutCalls, 1);
       expect(await storage.read(key: _key), isNull);
+    });
+  });
+
+  test('aynı anda yapılan aynı GET istekleri tek istekte birleşir', () async {
+    await run(() async {
+      await api.login('a@b.co', 'parola123');
+      // Açılıştaki gibi: ana sayfa ve profil /auth/me'yi aynı anda ister.
+      final results = await Future.wait(
+          [api.getMe(), api.getProfile(), api.hasAiConsent()]);
+      expect(backend.calls['GET /auth/me'], 1);
+      expect((results[1] as dynamic).email, 'a@b.co');
+      expect(results[2], isFalse);
+
+      // Biten istek saklanmaz; sonraki okuma sunucuya gider.
+      await api.getMe();
+      expect(backend.calls['GET /auth/me'], 2);
+    });
+  });
+
+  test('veri değiştiren istekten sonraki okuma eski isteğe katılmaz', () async {
+    await run(() async {
+      await api.login('a@b.co', 'parola123');
+      backend.holdReads = Completer();
+      final before = api.getAlerts(); // cevap bekletiliyor
+      await api.dismissAlert('budget:Yemek:2026-10:80');
+      final after = api.getAlerts();
+      backend.holdReads!.complete();
+      await Future.wait([before, after]);
+      expect(backend.calls['GET /alerts'], 2);
     });
   });
 }

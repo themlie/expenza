@@ -79,8 +79,31 @@ class ApiClient {
     return query == null || query.isEmpty ? uri : uri.replace(queryParameters: query);
   }
 
-  /// İsteği gönderir; 401 gelirse token'ı bir kez yenileyip tekrar dener.
+  // Aynı anda yapılan aynı GET istekleri tek istekte birleştirilir: girişte bütün
+  // sekmeler aynı karede yüklenir ve örneğin /auth/me üç kez istenirdi. Yalnızca
+  // devam eden istekler paylaşılır (önbellek yok). Veri değiştiren bir istek ya da
+  // oturum değişikliği birleştirmeyi sıfırlar; sonraki okumalar eski cevabı almaz.
+  final _inflight = <String, Future<http.Response>>{};
+
   Future<http.Response> _send(String method, String path,
+      {Object? body, Map<String, String>? query}) {
+    if (method != 'GET') {
+      _inflight.clear();
+      return _sendNow(method, path, body: body, query: query);
+    }
+    final key = _u(path, query).toString();
+    final pending = _inflight[key];
+    if (pending != null) return pending;
+    final request = _sendNow(method, path, query: query);
+    _inflight[key] = request;
+    request.whenComplete(() {
+      if (identical(_inflight[key], request)) _inflight.remove(key);
+    }).ignore();
+    return request;
+  }
+
+  /// İsteği gönderir; 401 gelirse token'ı bir kez yenileyip tekrar dener.
+  Future<http.Response> _sendNow(String method, String path,
       {Object? body, Map<String, String>? query}) async {
     final encoded = body == null ? null : jsonEncode(body);
     Future<http.Response> go() {
@@ -157,6 +180,7 @@ class ApiClient {
   void _endSession(String? reason) {
     sessionEndedReason = reason;
     _token = null;
+    _inflight.clear();
     session.value = false;
   }
 
@@ -203,6 +227,7 @@ class ApiClient {
     if (!remember) await _forgetTokens();
     await _storeTokens(jsonDecode(r.body));
     sessionEndedReason = null;
+    _inflight.clear(); // önceki hesabın yarım kalan istekleri paylaşılmasın
     session.value = true;
   }
 
