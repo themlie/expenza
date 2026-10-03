@@ -25,15 +25,16 @@ ANOMALY_RECENT_DAYS = 7
 GOAL_BEHIND_TOLERANCE = 0.05
 
 Tx = models.Transaction
-TOTAL = models.CategoryEnum.toplam
+# Harcama sözlükleri ve bütçeler kategori adıyla ("Yemek", "Toplam") eşleştirilir.
+TOTAL = models.TOTAL_BUDGET.value
 
 
 def _pct(ratio: float) -> int:
     return int(round(ratio * 100))
 
 
-def _label(category: models.CategoryEnum) -> str:
-    return "Aylık toplam bütçe" if category == TOTAL else f"{category.value} bütçesi"
+def _label(category: str) -> str:
+    return "Aylık toplam bütçe" if category == TOTAL else f"{category} bütçesi"
 
 
 def _month_filter(year: int, month: int):
@@ -45,8 +46,8 @@ def _month_filter(year: int, month: int):
 
 def month_spending(
     db: Session, user_id: int, year: int, month: int, fixed_only: bool = False
-) -> dict[models.CategoryEnum, float]:
-    """Ayın kategori bazında giderleri; Toplam anahtarı hepsinin toplamıdır.
+) -> dict[str, float]:
+    """Ayın kategori adına göre giderleri; "Toplam" anahtarı hepsinin toplamıdır.
 
     fixed_only: yalnızca tekrarlayan serilerden gelen giderler.
     """
@@ -57,7 +58,7 @@ def month_spending(
     )
     if fixed_only:
         query = query.filter(Tx.series_id.isnot(None))
-    spent = {cat: float(total) for cat, total in query.group_by(Tx.category)}
+    spent = {cat.value: float(total) for cat, total in query.group_by(Tx.category)}
     spent[TOTAL] = sum(spent.values())
     return spent
 
@@ -87,7 +88,7 @@ def budget_alerts_after_save(
 
     spent = month_spending(db, user.id, today.year, today.month)
 
-    def counted_before(category: models.CategoryEnum) -> float:
+    def counted_before(category: str) -> float:
         """Bu kayıttan önce kategoriye sayılan tutar (güncellemede eski değer)."""
         if previous is None:
             return 0.0
@@ -95,23 +96,24 @@ def budget_alerts_after_save(
         same_month = (old_day.year, old_day.month) == (today.year, today.month)
         if old_type != models.TxType.expense or not same_month:
             return 0.0
-        return old_amount if category in (old_cat, TOTAL) else 0.0
+        return old_amount if category in (old_cat.value, TOTAL) else 0.0
 
     alerts = []
     for budget in _budgets(db, user.id):
-        if budget.category not in (tx.category, TOTAL) or budget.monthly_limit <= 0:
+        key = budget.category.value
+        if key not in (tx.category.value, TOTAL) or budget.monthly_limit <= 0:
             continue
-        after = spent.get(budget.category, 0.0)
-        before = after - tx.amount + counted_before(budget.category)
+        after = spent.get(key, 0.0)
+        before = after - tx.amount + counted_before(key)
         ratio = after / budget.monthly_limit
         if ratio < WARN_RATIO:
             continue
         exceeded = ratio >= 1
         threshold = 1.0 if exceeded else WARN_RATIO
-        label = _label(budget.category)
+        label = _label(key)
         alerts.append(
             schemas.BudgetAlert(
-                category=budget.category.value,
+                category=key,
                 limit=budget.monthly_limit,
                 spent=round(after, 2),
                 ratio=round(ratio, 3),
@@ -125,7 +127,7 @@ def budget_alerts_after_save(
             )
         )
     # Önce kategori, sonra toplam bütçe.
-    alerts.sort(key=lambda a: a.category == TOTAL.value)
+    alerts.sort(key=lambda a: a.category == TOTAL)
     return alerts
 
 
@@ -186,14 +188,15 @@ def _pace_alerts(
     ]
     alerts = []
     for b in budgets:
-        total = spent.get(b.category, 0.0)
+        key = b.category.value
+        total = spent.get(key, 0.0)
         if b.monthly_limit <= 0 or total / b.monthly_limit >= WARN_RATIO:
             continue  # zaten bütçe uyarısı var
-        fixed_part = fixed.get(b.category, 0.0)
+        fixed_part = fixed.get(key, 0.0)
         upcoming = [
             (due, s.amount)
             for due, s in this_month
-            if b.category == TOTAL or s.category == b.category
+            if key == TOTAL or s.category.value == key
         ]
         day = pace_exceed_day(
             b.monthly_limit, fixed_part, total - fixed_part, upcoming, today
@@ -208,12 +211,12 @@ def _pace_alerts(
         )
         alerts.append(
             schemas.AlertOut(
-                id=f"pace:{b.category.value}:{today:%Y-%m}",
+                id=f"pace:{key}:{today:%Y-%m}",
                 kind="budget_pace",
                 level="warning",
-                title=f"{_label(b.category)} bu hızla aşılacak",
+                title=f"{_label(key)} bu hızla aşılacak",
                 message=f"Bu harcama hızıyla bütçe ayın {day}. günü dolacak.",
-                category=b.category.value,
+                category=key,
                 amount=round(projected, 2),
             )
         )
@@ -309,20 +312,21 @@ def _budget_alerts(spent: dict, budgets: list, today: date) -> list[schemas.Aler
     for b in budgets:
         if b.monthly_limit <= 0:
             continue
-        total = spent.get(b.category, 0.0)
+        key = b.category.value
+        total = spent.get(key, 0.0)
         ratio = total / b.monthly_limit
         if ratio < WARN_RATIO:
             continue
         exceeded = ratio >= 1
-        label = _label(b.category)
+        label = _label(key)
         alerts.append(
             schemas.AlertOut(
-                id=f"budget:{b.category.value}:{today:%Y-%m}:{100 if exceeded else 80}",
+                id=f"budget:{key}:{today:%Y-%m}:{100 if exceeded else 80}",
                 kind="budget",
                 level="danger" if exceeded else "warning",
                 title=f"{label} aşıldı" if exceeded else f"{label} dolmak üzere",
                 message=f"Bu ay limitin %{_pct(ratio)} seviyesine ulaştın.",
-                category=b.category.value,
+                category=key,
                 amount=round(total, 2),
             )
         )

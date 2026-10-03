@@ -30,7 +30,6 @@ ENDPOINTS = [
     ("GET /analytics/forecast", "/analytics/forecast"),
     ("GET /budgets", "/budgets"),
 ]
-CATEGORIES = ["Yemek", "Ulaşım", "Faturalar", "Eğlence", "Sağlık", "Eğitim", "Alışveriş"]
 
 
 def percentile(values: list[float], p: float) -> float:
@@ -47,6 +46,7 @@ def prepare_user(client: httpx.Client, transactions: int) -> dict:
         "/auth/login", data={"username": email, "password": password}
     ).raise_for_status().json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
+    categories = client.get("/categories").raise_for_status().json()
     rng = random.Random(42)
     today = date.today()
     for _ in range(transactions):
@@ -55,7 +55,7 @@ def prepare_user(client: httpx.Client, transactions: int) -> dict:
             json={
                 "amount": round(rng.uniform(10, 500), 2),
                 "type": "expense",
-                "category": rng.choice(CATEGORIES),
+                "category": rng.choice(categories),
                 "note": "yük testi",
                 "occurred_on": (today - timedelta(days=rng.randrange(365))).isoformat(),
             },

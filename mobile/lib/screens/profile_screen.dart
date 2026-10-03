@@ -424,9 +424,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           }),
           _divider(),
           _settingRow(const Color(0xFFB68CF0), Icons.grid_view, 'Kategoriler',
-              value: '8 kategori', chevron: true, onTap: () {
+              value: '${kCategories.length} kategori', chevron: true, onTap: () {
             _showInfoDialog(context, 'Kategoriler',
-                'Aktif Kategoriler:\n• Yemek\n• Ulaşım\n• Faturalar\n• Eğlence\n• Sağlık\n• Eğitim\n• Alışveriş\n• Diğer');
+                'Aktif Kategoriler:\n${kCategories.map((c) => '• $c').join('\n')}');
           }),
           _divider(),
           _settingRow(

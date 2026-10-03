@@ -2,36 +2,25 @@
 from datetime import date
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import extract, func
 from sqlalchemy.orm import Session
 
-from .. import models, schemas
+from .. import coach, models, schemas
 from ..auth import get_current_user
 from ..database import get_db
 
 router = APIRouter(prefix="/budgets", tags=["budgets"])
 
 
-def _spent_by_category(db: Session, user_id: int) -> dict:
-    """İçinde bulunulan ay için kategori bazında toplam gideri döndürür."""
+def _out(budget: models.Budget, spent: dict[str, float]) -> schemas.BudgetOut:
+    out = schemas.BudgetOut.model_validate(budget)
+    out.spent = spent.get(budget.category.value, 0.0)
+    return out
+
+
+def _this_month(db: Session, user_id: int) -> dict[str, float]:
+    """İçinde bulunulan ayın kategori adına göre giderleri ("Toplam" dahil)."""
     today = date.today()
-    rows = (
-        db.query(
-            models.Transaction.category,
-            func.coalesce(func.sum(models.Transaction.amount), 0.0),
-        )
-        .filter(
-            models.Transaction.user_id == user_id,
-            models.Transaction.type == models.TxType.expense,
-            extract("year", models.Transaction.occurred_on) == today.year,
-            extract("month", models.Transaction.occurred_on) == today.month,
-        )
-        .group_by(models.Transaction.category)
-        .all()
-    )
-    res = {cat: total for cat, total in rows}
-    res[models.CategoryEnum.toplam] = sum(res.values())
-    return res
+    return coach.month_spending(db, user_id, today.year, today.month)
 
 
 @router.post("", response_model=schemas.BudgetOut, status_code=201)
@@ -60,11 +49,7 @@ def upsert_budget(
         db.add(budget)
     db.commit()
     db.refresh(budget)
-
-    spent = _spent_by_category(db, user.id).get(budget.category, 0.0)
-    out = schemas.BudgetOut.model_validate(budget)
-    out.spent = spent
-    return out
+    return _out(budget, _this_month(db, user.id))
 
 
 @router.get("", response_model=list[schemas.BudgetOut])
@@ -73,13 +58,8 @@ def list_budgets(
     user: models.User = Depends(get_current_user),
 ):
     budgets = db.query(models.Budget).filter(models.Budget.user_id == user.id).all()
-    spent_map = _spent_by_category(db, user.id)
-    result = []
-    for b in budgets:
-        out = schemas.BudgetOut.model_validate(b)
-        out.spent = spent_map.get(b.category, 0.0)
-        result.append(out)
-    return result
+    spent = _this_month(db, user.id)
+    return [_out(b, spent) for b in budgets]
 
 
 @router.delete("/{budget_id}", status_code=204)

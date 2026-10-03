@@ -1,19 +1,11 @@
 // Backend şemalarıyla eşleşen veri modelleri.
 
+// Kategori listesi categories.dart'ta; models.dart'ı kullanan ekranlar için buradan da
+// erişilebilir.
+export 'categories.dart' show kCategories, kTotalBudget;
+
 /// Uygulama sürümü (pubspec.yaml'daki version ile aynı tutulmalı).
 const appVersion = String.fromEnvironment('APP_VERSION', defaultValue: '1.0.0');
-
-/// Çevrimdışı yedek liste. Asıl kaynak backend'dir: ApiClient.getCategories().
-const kCategories = [
-  'Yemek',
-  'Ulaşım',
-  'Faturalar',
-  'Eğlence',
-  'Sağlık',
-  'Eğitim',
-  'Alışveriş',
-  'Diğer',
-];
 
 class TransactionModel {
   final int id;

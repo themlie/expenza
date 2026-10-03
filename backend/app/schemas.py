@@ -4,7 +4,7 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
-from .models import CategoryEnum, TxType
+from .models import BudgetCategory, CategoryEnum, TxType
 
 
 # ---- Auth ----
@@ -182,16 +182,16 @@ class TransactionSummary(BaseModel):
 
 # ---- Budgets ----
 class BudgetCreate(BaseModel):
-    category: CategoryEnum
+    category: BudgetCategory  # kategori ya da "Toplam" (bütün giderler)
     monthly_limit: float = Field(gt=0, le=MAX_AMOUNT)
 
 
 class BudgetOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
-    category: CategoryEnum
+    category: BudgetCategory
     monthly_limit: float
-    spent: float = 0.0  # crud tarafından doldurulur
+    spent: float = 0.0  # bu ayın harcaması, router doldurur
 
 
 # ---- ML ----

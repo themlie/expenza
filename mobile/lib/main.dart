@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import 'api_client.dart';
+import 'categories.dart';
 import 'screens/home_shell.dart';
 import 'screens/login_screen.dart';
 import 'screens/splash_screen.dart';
@@ -24,6 +25,8 @@ Future<void> main() async {
   runApp(const ExpenzaApp());
   // Kayıtlı oturum varsa geri yükle; bu sırada açılış ekranı gösterilir.
   ApiClient.instance.restoreSession();
+  // Kategori listesi backend'den gelir (giriş gerektirmez).
+  loadCategories();
 }
 
 class ExpenzaApp extends StatelessWidget {

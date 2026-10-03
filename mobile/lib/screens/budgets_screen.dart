@@ -60,10 +60,10 @@ class BudgetsScreenState extends State<BudgetsScreen> {
               return LoadError(error: snap.error!, onRetry: refresh);
             }
             final budgets = snap.data ?? [];
-            final categoryBudgets = budgets.where((b) => b.category != 'Toplam').toList();
+            final categoryBudgets = budgets.where((b) => b.category != kTotalBudget).toList();
             final totalBudget = budgets.firstWhere(
-              (b) => b.category == 'Toplam',
-              orElse: () => BudgetModel(id: -1, category: 'Toplam', monthlyLimit: 0.0, spent: 0.0),
+              (b) => b.category == kTotalBudget,
+              orElse: () => BudgetModel(id: -1, category: kTotalBudget, monthlyLimit: 0.0, spent: 0.0),
             );
 
             final spent = totalBudget.id == -1 
@@ -404,7 +404,7 @@ class BudgetsScreenState extends State<BudgetsScreen> {
   Future<void> _openSheet(List<BudgetModel> all, BudgetModel? editing, {bool isTotal = false}) async {
     final usedCats = all.map((b) => b.category).toSet();
     final available = isTotal 
-        ? ['Toplam']
+        ? [kTotalBudget]
         : (editing != null
             ? [editing.category]
             : kCategories.where((c) => !usedCats.contains(c)).toList());
@@ -414,7 +414,7 @@ class BudgetsScreenState extends State<BudgetsScreen> {
       return;
     }
 
-    String chosen = isTotal ? 'Toplam' : (editing?.category ?? available.first);
+    String chosen = isTotal ? kTotalBudget : (editing?.category ?? available.first);
     final initialLimit = editing != null && editing.monthlyLimit > 0
         ? CurrencyService.convertFromTry(editing.monthlyLimit, currencyNotifier.value)
         : 0.0;

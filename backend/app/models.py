@@ -1,8 +1,4 @@
-"""SQLAlchemy ORM modelleri — Expenza veri modeli.
-
-Kategoriler tasarım mockup'larıyla uyumludur:
-Yemek, Ulaşım, Faturalar, Eğlence, Sağlık, Eğitim, Alışveriş, Diğer.
-"""
+"""SQLAlchemy ORM modelleri — Expenza veri modeli."""
 import enum
 from datetime import date, datetime
 from typing import Optional
@@ -25,7 +21,12 @@ from .database import Base
 
 
 class CategoryEnum(str, enum.Enum):
-    """Sabit harcama kategorileri. Hero NLP modeli bu etiketleri üretecek."""
+    """İşlem kategorileri; projedeki tek kaynak budur.
+
+    Mobil uygulama listeyi GET /categories'ten alır. Kural tabanlı sınıflandırıcının
+    sözlüğü ve eğitim verisi üreticisi testlerde bu listeye göre doğrulanır
+    (tests/test_categories.py). Yeni kategori eklenirse model yeniden eğitilmelidir.
+    """
 
     yemek = "Yemek"
     ulasim = "Ulaşım"
@@ -35,7 +36,16 @@ class CategoryEnum(str, enum.Enum):
     egitim = "Eğitim"
     alisveris = "Alışveriş"
     diger = "Diğer"
-    toplam = "Toplam"
+
+
+# Bütçe kapsamı: her işlem kategorisi ve bütün giderleri kapsayan "Toplam". Toplam bir
+# işlem kategorisi değildir, işlemlerde kullanılamaz. Liste CategoryEnum'dan türetilir.
+BudgetCategory = enum.Enum(
+    "BudgetCategory",
+    {**{c.name: c.value for c in CategoryEnum}, "toplam": "Toplam"},
+    type=str,
+)
+TOTAL_BUDGET = BudgetCategory.toplam
 
 
 class TxType(str, enum.Enum):
@@ -136,7 +146,7 @@ class Budget(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
-    category: Mapped[CategoryEnum] = mapped_column(Enum(CategoryEnum))
+    category: Mapped[BudgetCategory] = mapped_column(Enum(BudgetCategory))
     monthly_limit: Mapped[float] = mapped_column(Float)
 
     user: Mapped["User"] = relationship(back_populates="budgets")

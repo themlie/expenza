@@ -3,10 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../api_client.dart';
+import '../categories.dart';
 import '../models.dart';
 import '../theme.dart';
 import 'goals_screen.dart';
 import 'chat_screen.dart';
+
+// Diğer ekranlar ikon ve rengi buradan alıyor; tanımlar categories.dart'ta.
+export '../categories.dart' show categoryColor, categoryIcon;
 
 final tl = NumberFormat.currency(locale: 'tr_TR', symbol: '₺', decimalDigits: 2);
 final _grp = NumberFormat('#,##0', 'tr_TR');
@@ -24,30 +28,6 @@ String money(double v, {bool showSign = false}) {
   final sep = symbol == '₺' ? ',' : '.';
   return cents == 0 ? base : '$base$sep${cents.toString().padLeft(2, '0')}';
 }
-
-/// Kategori -> ikon (diğer ekranlar da kullanır).
-IconData categoryIcon(String c) => switch (c) {
-      'Yemek' => Icons.restaurant,
-      'Ulaşım' => Icons.directions_car,
-      'Faturalar' => Icons.receipt_long,
-      'Eğlence' => Icons.movie,
-      'Sağlık' => Icons.medical_services,
-      'Eğitim' => Icons.school,
-      'Alışveriş' => Icons.shopping_bag,
-      _ => Icons.more_horiz,
-    };
-
-/// Kategori -> renk (liste ikonları için; diğer ekranlar kullanır).
-Color categoryColor(String c) => switch (c) {
-      'Yemek' => const Color(0xFF46F1C5),
-      'Ulaşım' => const Color(0xFF6EA8FE),
-      'Faturalar' => const Color(0xFFB68CF0),
-      'Eğlence' => const Color(0xFFF0B36B),
-      'Sağlık' => const Color(0xFFF2766B),
-      'Eğitim' => const Color(0xFF5FD4C2),
-      'Alışveriş' => const Color(0xFFEC9BC4),
-      _ => const Color(0xFF8A958F),
-    };
 
 class _DashData {
   final SummaryModel summary;

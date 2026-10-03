@@ -8,5 +8,5 @@ router = APIRouter(tags=["meta"])
 
 @router.get("/categories", response_model=list[str])
 def categories():
-    """İşlem kategorileri. "Toplam" kategori değil, yalnızca toplam bütçe için kullanılır."""
-    return [c.value for c in CategoryEnum if c != CategoryEnum.toplam]
+    """İşlem kategorileri. Bütçelerde bunlara ek olarak "Toplam" kullanılabilir."""
+    return [c.value for c in CategoryEnum]

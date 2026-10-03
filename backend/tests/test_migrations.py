@@ -116,3 +116,38 @@ def test_old_recurring_rows_are_linked_to_series(tmp_path):
     assert [d for (d,) in linked] == ["2026-01-31", "2026-02-28", "2026-03-28", "2026-03-31"]
     assert unlinked == [("2026-03-31", 0)]
     assert total == len(rows)  # hiçbir kayıt silinmedi
+
+
+def test_total_used_as_transaction_category_moves_to_other(tmp_path):
+    db = tmp_path / "toplam.db"
+    r = _run(["-m", "alembic", "upgrade", "0006"], db)
+    assert r.returncode == 0, r.stderr
+
+    con = sqlite3.connect(db)
+    con.execute(
+        "INSERT INTO users (id, email, hashed_password, display_name) VALUES (1, 'a@example.com', 'x', 'A')"
+    )
+    con.executemany(
+        "INSERT INTO transactions (user_id, amount, type, category, auto_categorized, is_recurring, "
+        "note, occurred_on, suggested_category, suggestion_confidence, suggestion_model) "
+        "VALUES (1, 10, 'expense', ?, 0, 0, ?, '2026-09-01', ?, ?, ?)",
+        [
+            ("toplam", "eski hata", "toplam", 0.4, "svm"),
+            ("yemek", "kahve", "yemek", 0.9, "svm"),
+        ],
+    )
+    con.execute("INSERT INTO budgets (user_id, category, monthly_limit) VALUES (1, 'toplam', 900)")
+    con.commit()
+    con.close()
+
+    r = _run("from app.migrate import upgrade_database; upgrade_database()", db)
+    assert r.returncode == 0, r.stderr
+
+    con = sqlite3.connect(db)
+    txs = con.execute(
+        "SELECT note, category, suggested_category, suggestion_model FROM transactions ORDER BY note"
+    ).fetchall()
+    budgets = con.execute("SELECT category FROM budgets").fetchall()
+    con.close()
+    assert txs == [("eski hata", "diger", None, None), ("kahve", "yemek", "yemek", "svm")]
+    assert budgets == [("toplam",)]  # toplam bütçe olduğu gibi kalır

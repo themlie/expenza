@@ -22,8 +22,8 @@ from ..models import CategoryEnum
 
 log = logging.getLogger(__name__)
 
-# Kural-tabanlı stub için anahtar kelime sözlüğü.
-# Aynı sözlük ileride sentetik eğitim verisi üretiminde de çekirdek olarak kullanılabilir.
+# Kural tabanlı yedek sınıflandırıcının anahtar kelimeleri. "Diğer" eşleşme olmayınca
+# döner, bu yüzden listesi yok. Anahtarların CategoryEnum'a uyduğu test ediliyor.
 KEYWORDS: dict[CategoryEnum, list[str]] = {
     CategoryEnum.yemek: [
         "kahve", "starbucks", "migros", "yemeksepeti", "getir", "lokanta",
@@ -123,8 +123,7 @@ def _load_active():
     return RuleBasedCategorizer()
 
 
-# İşlemlere atanabilen kategoriler ("Toplam" yalnızca bütçe kapsamıdır).
-TX_CATEGORIES = [c for c in CategoryEnum if c is not CategoryEnum.toplam]
+TX_CATEGORIES = list(CategoryEnum)
 
 GEMINI_RULES = (
     "Sen bir finansal işlem sınıflandırıcısısın. Kullanıcının yazdığı Türkçe harcama "
