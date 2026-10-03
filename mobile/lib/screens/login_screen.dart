@@ -304,22 +304,9 @@ class _LoginScreenState extends State<LoginScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Eyebrow('Parola'),
-            if (!_isRegister)
-              Press(
-                onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Şifre sıfırlama yakında'))),
-                child: Text('Şifremi unuttum',
-                    style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.primary)),
-              ),
-          ],
-        ),
+        // E-postayla şifre sıfırlama yok (e-posta altyapısı gerektirir); şifre
+        // giriş yaptıktan sonra Profil > Hesap ayarları'ndan değiştirilir.
+        const Eyebrow('Parola'),
         const SizedBox(height: 10),
         _fieldBox(
           child: Row(

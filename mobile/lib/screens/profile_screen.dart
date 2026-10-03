@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../api_client.dart';
 import '../models.dart';
 import '../theme.dart';
+import 'account_screen.dart';
 import '../wordmark.dart';
 
 /// Profil: kullanıcı kartı, finansal içgörüler, ayarlar, çıkış.
@@ -32,6 +33,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
         });
       }
     }).catchError((_) {});
+  }
+
+  /// Ad değişmiş olabilir; dönünce profil yeniden yüklenir.
+  Future<void> _openAccount() async {
+    await Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => const AccountScreen()));
+    if (mounted) setState(() => _future = _load());
   }
 
   Future<void> _setNotif(bool value) async {
@@ -107,14 +115,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           Text('Profil', style: AppText.display(size: 38)),
                         ],
                       ),
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(color: AppColors.glassBorder)),
-                        child: Icon(Icons.settings_outlined,
-                            size: 19, color: AppColors.onSurface),
+                      Tooltip(
+                        message: 'Hesap ayarları',
+                        child: Press(
+                          onTap: _openAccount,
+                          child: Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border:
+                                    Border.all(color: AppColors.glassBorder)),
+                            child: Icon(Icons.settings_outlined,
+                                size: 19, color: AppColors.onSurface),
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -437,6 +452,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               value: curLabel, chevron: true, onTap: () {
             _showCurrencyDialog(context);
           }),
+          _divider(),
+          _settingRow(AppColors.info, Icons.manage_accounts_outlined, 'Hesap',
+              subtitle: 'Ad, şifre, hesabı silme',
+              chevron: true,
+              onTap: _openAccount),
           _divider(),
           _settingRow(AppColors.catPurple, Icons.grid_view, 'Kategoriler',
               value: '${kCategories.length} kategori', chevron: true, onTap: () {
