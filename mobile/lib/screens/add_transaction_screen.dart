@@ -9,8 +9,9 @@ import '../ocr_service.dart';
 import '../theme.dart';
 import 'dashboard_screen.dart' show categoryColor, categoryIcon;
 
-/// Harcama/Gelir ekleme veya düzenleme — premium tasarım.
-/// Gider notu yazıldıkça GERÇEK eğitilmiş model (/ml/categorize) canlı öneri verir.
+/// Harcama/Gelir ekleme veya düzenleme.
+/// Gider notu yazıldıkça GERÇEK eğitilmiş model (/ml/categorize) canlı öneri verir;
+/// öneri kartı web sitesindeki canlı önizlemeyle aynı dili kullanır.
 class AddTransactionScreen extends StatefulWidget {
   final TransactionModel? existing;
   const AddTransactionScreen({super.key, this.existing});
@@ -105,35 +106,54 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       context: context,
       backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xl))),
       builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 12),
-            Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                    color: AppColors.surfaceContainerHigh,
-                    borderRadius: BorderRadius.circular(99))),
-            const SizedBox(height: 8),
-            ListTile(
-              leading: Icon(Icons.photo_camera_outlined,
-                  color: AppColors.onSurface),
-              title: Text('Kamera',
-                  style: TextStyle(color: AppColors.onSurface)),
-              onTap: () => Navigator.pop(ctx, ImageSource.camera),
-            ),
-            ListTile(
-              leading:
-                  Icon(Icons.photo_library_outlined, color: AppColors.onSurface),
-              title: Text('Galeriden seç',
-                  style: TextStyle(color: AppColors.onSurface)),
-              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
-            ),
-            const SizedBox(height: 8),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                        color: AppColors.surfaceContainerHigh,
+                        borderRadius: BorderRadius.circular(AppRadius.pill))),
+              ),
+              const SizedBox(height: 18),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8),
+                child: Eyebrow('Fiş tara', size: 11),
+              ),
+              const SizedBox(height: 6),
+              ListTile(
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.md)),
+                leading: Icon(Icons.photo_camera_outlined,
+                    color: AppColors.onSurface),
+                title: Text('Kamera',
+                    style: TextStyle(fontSize: 17, color: AppColors.onSurface)),
+                onTap: () => Navigator.pop(ctx, ImageSource.camera),
+              ),
+              ListTile(
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.md)),
+                leading: Icon(Icons.photo_library_outlined,
+                    color: AppColors.onSurface),
+                title: Text('Galeriden seç',
+                    style: TextStyle(fontSize: 17, color: AppColors.onSurface)),
+                onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(8, 6, 8, 4),
+                child: Text('Fotoğraf telefonunda okunur, sunucuya yüklenmez.',
+                    style: TextStyle(
+                        fontSize: 14, color: AppColors.onSurfaceVariant)),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -155,7 +175,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       if (scan.amount == null) {
         _toast('Tutar okunamadı, elle gir', error: true);
       } else {
-        _toast('Fiş okundu — kontrol edip kaydet');
+        _toast('Fiş okundu, kontrol edip kaydet');
       }
     } catch (e) {
       _toast('Fiş okunamadı: ${e.toString()}', error: true);
@@ -166,15 +186,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Row(
         children: [
-          Icon(error ? Icons.error_outline : Icons.check_circle,
-              color: error ? AppColors.error : const Color(0xFF46F1C5),
-              size: 18),
+          Icon(error ? Icons.error_outline : Icons.check_circle_outline,
+              color: AppColors.background, size: 18),
           const SizedBox(width: 10),
-          Text(msg),
+          Expanded(child: Text(msg)),
         ],
       ),
-      behavior: SnackBarBehavior.floating,
-      backgroundColor: AppColors.surfaceContainerHigh,
     ));
   }
 
@@ -224,16 +241,17 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = themeModeNotifier.value == ThemeMode.dark;
-    final accent = _isIncome ? const Color(0xFF46F1C5) : AppColors.error;
+    final accent = _isIncome ? AppColors.positive : AppColors.onSurface;
+    final hasAmount = _amount.text.trim().isNotEmpty;
     final title = _isEdit
-        ? (_isIncome ? 'Geliri Düzenle' : 'Gideri Düzenle')
-        : (_isIncome ? 'Gelir Ekle' : 'Harcama Ekle');
+        ? (_isIncome ? 'Geliri düzenle' : 'Gideri düzenle')
+        : (_isIncome ? 'Gelir ekle' : 'Harcama ekle');
 
     return Scaffold(
       body: Stack(
         children: [
           ListView(
-            padding: const EdgeInsets.fromLTRB(24, 52, 24, 130),
+            padding: const EdgeInsets.fromLTRB(20, 52, 20, 130),
             children: [
               // Başlık
               Row(
@@ -243,8 +261,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                       () => Navigator.of(context).maybePop()),
                   Text(title,
                       style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w700,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w500,
                           color: AppColors.onSurface)),
                   _circleBtn(
                       isDark
@@ -253,173 +271,173 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                       toggleThemeMode),
                 ],
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 26),
 
               // Gider/Gelir segmenti
-              _segmented(),
+              Rise(child: _segmented()),
               const SizedBox(height: 14),
 
               // Fiş tara (gider + mobil)
               if (!_isIncome && OcrService.supported) ...[
-                Press(
-                  onTap: _scanReceipt,
-                  child: Container(
-                    height: 46,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: AppColors.surfaceContainerHigh),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.document_scanner_outlined,
-                            size: 18, color: AppColors.primary),
-                        const SizedBox(width: 8),
-                        Text('Fiş Tara',
-                            style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.onSurface)),
-                      ],
+                Rise(
+                  delayMs: 60,
+                  child: Press(
+                    onTap: _scanReceipt,
+                    child: Container(
+                      height: 48,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(AppRadius.pill),
+                        border: Border.all(color: AppColors.glassBorder),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.document_scanner_outlined,
+                              size: 19, color: AppColors.primary),
+                          const SizedBox(width: 8),
+                          Text('Fiş tara',
+                              style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                  color: AppColors.onSurface)),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-                const SizedBox(height: 18),
+                const SizedBox(height: 26),
               ] else
-                const SizedBox(height: 12),
+                const SizedBox(height: 18),
 
               // Tutar
-              Column(
-                children: [
-                  Text('TUTAR',
-                      style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.6,
-                          color: AppColors.outline)),
-                  const SizedBox(height: 10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Text(_isIncome ? '+${currencyNotifier.value}' : '−${currencyNotifier.value}',
-                          style: TextStyle(
-                              fontSize: 34,
-                              fontWeight: FontWeight.w700,
-                              color: accent,
-                              fontFeatures: kTnum)),
-                      const SizedBox(width: 6),
-                      IntrinsicWidth(
-                        child: TextField(
-                          controller: _amount,
-                          autofocus: !_isEdit,
-                          keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true),
-                          textAlign: TextAlign.center,
-                          onChanged: (_) => setState(() {}),
-                          style: TextStyle(
-                              fontSize: 52,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: -1,
-                              color: AppColors.onSurface,
-                              fontFeatures: kTnum),
-                          decoration: InputDecoration(
-                            isCollapsed: true,
-                            border: InputBorder.none,
-                            hintText: '0',
-                            hintStyle: TextStyle(
-                                fontSize: 52,
-                                fontWeight: FontWeight.w800,
-                                color: AppColors.surfaceContainerHigh),
+              Rise(
+                delayMs: 100,
+                child: Column(
+                  children: [
+                    const Eyebrow('Tutar'),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        AnimatedDefaultTextStyle(
+                          duration: AppMotion.fast,
+                          style: AppText.display(size: 36, color: accent)
+                              .copyWith(fontWeight: FontWeight.w300),
+                          child: Text(_isIncome
+                              ? '+${currencyNotifier.value}'
+                              : '−${currencyNotifier.value}'),
+                        ),
+                        const SizedBox(width: 6),
+                        IntrinsicWidth(
+                          child: TextField(
+                            controller: _amount,
+                            autofocus: !_isEdit,
+                            keyboardType: const TextInputType.numberWithOptions(
+                                decimal: true),
+                            textAlign: TextAlign.center,
+                            onChanged: (_) => setState(() {}),
+                            style: AppText.display(size: 60),
+                            decoration: InputDecoration(
+                              isCollapsed: true,
+                              filled: false,
+                              border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              hintText: '0',
+                              hintStyle: AppText.display(
+                                  size: 60, color: AppColors.surfaceContainerHigh),
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Container(
-                    width: 120,
-                    height: 2,
-                    decoration: BoxDecoration(
-                        color: AppColors.surfaceContainerHigh,
-                        borderRadius: BorderRadius.circular(2)),
-                  ),
-                ],
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    AnimatedContainer(
+                      duration: AppMotion.medium,
+                      curve: AppMotion.curve,
+                      width: hasAmount ? 180 : 110,
+                      height: 2,
+                      decoration: BoxDecoration(
+                          color: hasAmount
+                              ? AppColors.primary
+                              : AppColors.surfaceContainerHigh,
+                          borderRadius: BorderRadius.circular(AppRadius.pill)),
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 30),
+              const SizedBox(height: 34),
 
               // Kategori (sadece gider)
               if (!_isIncome) ...[
-                Text('Kategori',
-                    style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.onSurface)),
-                const SizedBox(height: 13),
+                const Eyebrow('Kategori'),
+                const SizedBox(height: 14),
                 GridView.count(
                   crossAxisCount: 4,
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   mainAxisSpacing: 10,
                   crossAxisSpacing: 10,
-                  childAspectRatio: 0.82,
-                  children: kCategories.map(_catCell).toList(),
+                  childAspectRatio: 0.8,
+                  children: [
+                    for (var i = 0; i < kCategories.length; i++)
+                      Rise(delayMs: 140 + i * 35, child: _catCell(kCategories[i])),
+                  ],
                 ),
-                const SizedBox(height: 22),
+                const SizedBox(height: 26),
               ],
 
               // Not + canlı öneri
-              Text('Not',
-                  style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.onSurface)),
-              const SizedBox(height: 13),
+              const Eyebrow('Not'),
+              const SizedBox(height: 12),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
                 decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(14),
+                  color: AppColors.surfaceBright,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
                   border: Border.all(color: AppColors.glassBorder),
                 ),
                 child: TextField(
                   controller: _note,
                   maxLines: 2,
                   style: TextStyle(
-                      fontSize: 14, height: 1.5, color: AppColors.onSurface),
+                      fontSize: 17, height: 1.45, color: AppColors.onSurface),
                   decoration: InputDecoration(
                     isCollapsed: true,
+                    filled: false,
                     border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
                     hintText: 'örn. Migros\'tan haftalık market alışverişi…',
                     hintStyle:
-                        TextStyle(color: AppColors.outline, fontSize: 14),
+                        TextStyle(color: AppColors.outline, fontSize: 17),
                   ),
                 ),
               ),
-              if (!_isIncome) _suggestionCard(),
+              if (!_isIncome)
+                AnimatedSize(
+                  duration: AppMotion.medium,
+                  curve: AppMotion.curve,
+                  alignment: Alignment.topCenter,
+                  child: _suggestionCard(),
+                ),
               const SizedBox(height: 18),
-              _recurringCheckbox(),
+              _recurringRow(),
             ],
           ),
 
-          // Kaydet barı
+          // Kaydet barı (düz zemin + üst çizgi)
           Positioned(
             left: 0,
             right: 0,
             bottom: 0,
             child: Container(
-              padding: const EdgeInsets.fromLTRB(24, 14, 24, 30),
+              padding: const EdgeInsets.fromLTRB(20, 14, 20, 30),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.bottomCenter,
-                  end: Alignment.topCenter,
-                  colors: [
-                    AppColors.background,
-                    AppColors.background.withValues(alpha: 0.0),
-                  ],
-                ),
+                color: AppColors.background,
+                border: Border(top: BorderSide(color: AppColors.glassBorder)),
               ),
               child: Press(
                 onTap: _busy ? null : _save,
@@ -428,7 +446,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                       color: AppColors.primary,
-                      borderRadius: BorderRadius.circular(16)),
+                      borderRadius: BorderRadius.circular(AppRadius.pill)),
                   child: _busy
                       ? SizedBox(
                           width: 22,
@@ -439,13 +457,13 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(Icons.check,
-                                size: 18, color: AppColors.onPrimary),
+                                size: 19, color: AppColors.onPrimary),
                             const SizedBox(width: 8),
                             Text(
-                                _isEdit ? 'Değişiklikleri Kaydet' : 'Kaydet',
+                                _isEdit ? 'Değişiklikleri kaydet' : 'Kaydet',
                                 style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w700,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
                                     color: AppColors.onPrimary)),
                           ],
                         ),
@@ -462,12 +480,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     return Press(
       onTap: onTap,
       child: Container(
-        width: 40,
-        height: 40,
+        width: 44,
+        height: 44,
         decoration: BoxDecoration(
             shape: BoxShape.circle,
-            border: Border.all(color: AppColors.surfaceContainer)),
-        child: Icon(icon, size: 19, color: AppColors.onSurfaceVariant),
+            border: Border.all(color: AppColors.glassBorder)),
+        child: Icon(icon, size: 20, color: AppColors.onSurface),
       ),
     );
   }
@@ -478,22 +496,22 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppRadius.pill),
         border: Border.all(color: AppColors.glassBorder),
       ),
       child: Stack(
         children: [
           AnimatedAlign(
             alignment: _isIncome ? Alignment.centerRight : Alignment.centerLeft,
-            duration: const Duration(milliseconds: 220),
-            curve: Curves.easeOutCubic,
+            duration: AppMotion.medium,
+            curve: AppMotion.curve,
             child: FractionallySizedBox(
               widthFactor: 0.5,
               heightFactor: 1,
               child: Container(
                 decoration: BoxDecoration(
-                  color: _isIncome ? const Color(0xFF46F1C5) : AppColors.error,
-                  borderRadius: BorderRadius.circular(12),
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
                 ),
               ),
             ),
@@ -501,9 +519,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           Row(
             children: [
               _segTab('Gider', Icons.south, !_isIncome,
-                  Colors.white, () => _setType('expense')),
+                  () => _setType('expense')),
               _segTab('Gelir', Icons.north, _isIncome,
-                  Colors.black, () => _setType('income')),
+                  () => _setType('income')),
             ],
           ),
         ],
@@ -512,7 +530,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   }
 
   Widget _segTab(
-      String label, IconData icon, bool active, Color activeText, VoidCallback onTap) {
+      String label, IconData icon, bool active, VoidCallback onTap) {
+    final color = active ? AppColors.onPrimary : AppColors.onSurfaceVariant;
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
@@ -520,15 +539,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon,
-                size: 16,
-                color: active ? activeText : AppColors.onSurfaceVariant),
+            Icon(icon, size: 16, color: color),
             const SizedBox(width: 7),
             Text(label,
                 style: TextStyle(
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w600,
-                    color: active ? activeText : AppColors.onSurfaceVariant)),
+                    fontSize: 15, fontWeight: FontWeight.w500, color: color)),
           ],
         ),
       ),
@@ -540,34 +555,40 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     final color = categoryColor(c);
     return GestureDetector(
       onTap: () => _pick(c),
-      child: Container(
-        decoration: BoxDecoration(
-          color: on ? color.withValues(alpha: 0.12) : AppColors.surface,
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(
-              color: on ? color : AppColors.glassBorder, width: on ? 1.5 : 1),
-        ),
-        padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 4),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 34,
-              height: 34,
-              decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(10)),
-              child: Icon(categoryIcon(c), size: 18, color: color),
-            ),
-            const SizedBox(height: 7),
-            Text(c,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: on ? FontWeight.w700 : FontWeight.w500,
-                    color: on ? AppColors.onSurface : AppColors.onSurfaceVariant)),
-          ],
+      child: AnimatedScale(
+        scale: on ? 1.04 : 1.0,
+        duration: AppMotion.fast,
+        child: AnimatedContainer(
+          duration: AppMotion.fast,
+          decoration: BoxDecoration(
+            color: on ? AppColors.primary.withValues(alpha: 0.08) : AppColors.surface,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+                color: on ? AppColors.primary : AppColors.glassBorder,
+                width: on ? 1.5 : 1),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 4),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.12),
+                    shape: BoxShape.circle),
+                child: Icon(categoryIcon(c), size: 18, color: color),
+              ),
+              const SizedBox(height: 8),
+              Text(c,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: on ? FontWeight.w500 : FontWeight.w400,
+                      color: on ? AppColors.onSurface : AppColors.onSurfaceVariant)),
+            ],
+          ),
         ),
       ),
     );
@@ -576,197 +597,206 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   Widget _suggestionCard() {
     if (_suggesting) {
       return Padding(
-        padding: const EdgeInsets.only(top: 10),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(13),
-            border: Border.all(color: AppColors.glassBorder),
-          ),
+        padding: const EdgeInsets.only(top: 12),
+        child: GlassCard(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
           child: Row(
             children: [
-              SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2, color: AppColors.outline)),
-              const SizedBox(width: 10),
-              Text('Kategori analiz ediliyor…',
+              const _ThinkingDots(),
+              const SizedBox(width: 12),
+              Text('Kategori analiz ediliyor',
                   style: TextStyle(
-                      fontSize: 12.5, color: AppColors.onSurfaceVariant)),
+                      fontSize: 15, color: AppColors.onSurfaceVariant)),
             ],
           ),
         ),
       );
     }
     final s = _suggestion;
-    if (s == null) return const SizedBox.shrink();
-    final color = categoryColor(s.category);
+    if (s == null) return const SizedBox(width: double.infinity);
     final already = _selectedCategory == s.category;
+    final low = s.confidence < 0.6;
+    final confColor = low ? AppColors.error : AppColors.primary;
     return Padding(
-      padding: const EdgeInsets.only(top: 10),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.06),
-          borderRadius: BorderRadius.circular(13),
-          border: Border.all(color: color.withValues(alpha: 0.4)),
-        ),
-        child: Row(
+      padding: const EdgeInsets.only(top: 12),
+      child: GlassCard(
+        padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.16),
-                  borderRadius: BorderRadius.circular(11)),
-              child: Icon(categoryIcon(s.category), size: 18, color: color),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.auto_awesome, size: 12, color: color),
-                      const SizedBox(width: 5),
-                      Text('ÖNERİLEN KATEGORİ',
-                          style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: 0.3,
-                              color: AppColors.outline)),
-                    ],
+            const Eyebrow('Önerilen kategori', size: 11),
+            const SizedBox(height: 10),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: AnimatedSwitcher(
+                    duration: AppMotion.medium,
+                    switchInCurve: AppMotion.curve,
+                    transitionBuilder: (child, a) => FadeTransition(
+                      opacity: a,
+                      child: SlideTransition(
+                          position: Tween(
+                                  begin: const Offset(0, 0.3), end: Offset.zero)
+                              .animate(a),
+                          child: child),
+                    ),
+                    child: Align(
+                      key: ValueKey(s.category),
+                      alignment: Alignment.centerLeft,
+                      // Dar ekranda güven oranı alt satıra iner, taşmaz.
+                      child: Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.end,
+                        spacing: 10,
+                        runSpacing: 4,
+                        children: [
+                          Text(s.category, style: AppText.display(size: 30)),
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 3),
+                            child: Text(
+                                '%${(s.confidence * 100).toStringAsFixed(0)} güven',
+                                style: AppText.mono(size: 13, color: confColor)),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 2),
-                  Row(
-                    children: [
-                      Text(s.category,
-                          style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.onSurface)),
-                      const SizedBox(width: 6),
-                      Text('%${(s.confidence * 100).toStringAsFixed(0)}',
-                          style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: color,
-                              fontFeatures: kTnum)),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            if (already)
-              Row(
-                children: [
-                  Icon(Icons.check, size: 15, color: color),
-                  const SizedBox(width: 4),
-                  Text('Seçili',
-                      style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: color)),
-                ],
-              )
-            else
-              Press(
-                onTap: () => _pick(s.category),
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 15, vertical: 9),
-                  decoration: BoxDecoration(
-                      color: color, borderRadius: BorderRadius.circular(11)),
-                  child: const Text('Kabul et',
-                      style: TextStyle(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF062019))),
                 ),
-              ),
+                const SizedBox(width: 10),
+                AnimatedSwitcher(
+                  duration: AppMotion.fast,
+                  child: already
+                      ? Row(
+                          key: const ValueKey('sel'),
+                          children: [
+                            Icon(Icons.check_circle_outline,
+                                size: 18, color: AppColors.primary),
+                            const SizedBox(width: 6),
+                            Text('Seçili',
+                                style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w500,
+                                    color: AppColors.primary)),
+                          ],
+                        )
+                      : Press(
+                          key: const ValueKey('acc'),
+                          onTap: () => _pick(s.category),
+                          child: Container(
+                            height: 44,
+                            padding: const EdgeInsets.symmetric(horizontal: 18),
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                                color: AppColors.primary,
+                                borderRadius:
+                                    BorderRadius.circular(AppRadius.pill)),
+                            child: Text('Kabul et',
+                                style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w500,
+                                    color: AppColors.onPrimary)),
+                          ),
+                        ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+                width: 160,
+                child: ExBar(value: s.confidence, color: confColor, height: 4)),
+            if (low) ...[
+              const SizedBox(height: 10),
+              Text('Bu notta emin değilim. Kategoriyi yukarıdan sen seç.',
+                  style: TextStyle(fontSize: 14, color: AppColors.onSurfaceVariant)),
+            ],
           ],
         ),
       ),
     );
   }
 
-  Widget _recurringCheckbox() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.glassBorder),
-      ),
+  Widget _recurringRow() {
+    return GlassCard(
+      padding: const EdgeInsets.fromLTRB(18, 8, 10, 8),
       child: Row(
         children: [
+          Icon(Icons.repeat, size: 19, color: AppColors.onSurfaceVariant),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
               'Her ay tekrarla',
-              style: TextStyle(fontSize: 14, color: AppColors.onSurface),
+              style: TextStyle(fontSize: 16, color: AppColors.onSurface),
             ),
           ),
-          Checkbox(
+          Switch(
             value: _isRecurring,
-            activeColor: const Color(0xFF46F1C5),
-            checkColor: Colors.black,
             onChanged: (val) async {
-              if (val == true) {
-                final confirm = await showDialog<bool>(
-                  context: context,
-                  builder: (ctx) {
-                    return AlertDialog(
-                      backgroundColor: AppColors.surface,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                          side: BorderSide(color: AppColors.glassBorder)),
-                      title: Text(
-                        'Her ay tekrarlansın mı?',
-                        style: TextStyle(
-                            color: AppColors.onSurface,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold),
-                      ),
-                      content: Text(
-                        'Bu ${_isIncome ? 'gelir' : 'gider'} her ay aynı gün otomatik olarak eklenecek. '
-                        'İstediğin zaman bu işlemi düzenleyip işareti kaldırarak durdurabilirsin.',
-                        style: TextStyle(
-                            color: AppColors.onSurfaceVariant, fontSize: 13, height: 1.5),
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(ctx, false),
-                          child: Text(
-                            'Hayır',
-                            style: TextStyle(
-                                color: AppColors.outline, fontWeight: FontWeight.w600),
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: () => Navigator.pop(ctx, true),
-                          child: const Text(
-                            'Evet',
-                            style: TextStyle(
-                                color: Color(0xFF46F1C5), fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ],
-                    );
-                  },
+              if (val) {
+                final confirm = await showConfirmDialog(
+                  context,
+                  title: 'Her ay tekrarlansın mı?',
+                  message:
+                      'Bu ${_isIncome ? 'gelir' : 'gider'} her ay aynı gün otomatik olarak eklenecek. '
+                      'İstediğin zaman bu işlemi düzenleyip işareti kaldırarak durdurabilirsin.',
+                  confirm: 'Evet',
+                  cancel: 'Hayır',
+                  destructive: false,
+                  icon: Icons.repeat,
                 );
-                if (confirm == true) {
-                  setState(() => _isRecurring = true);
-                } else {
-                  setState(() => _isRecurring = false);
-                }
+                setState(() => _isRecurring = confirm);
               } else {
                 setState(() => _isRecurring = false);
               }
             },
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Model yanıtını beklerken nabız gibi yanıp sönen üç nokta.
+class _ThinkingDots extends StatefulWidget {
+  const _ThinkingDots();
+
+  @override
+  State<_ThinkingDots> createState() => _ThinkingDotsState();
+}
+
+class _ThinkingDotsState extends State<_ThinkingDots>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 1200))
+    ..repeat();
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _c,
+      builder: (context, _) => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (var i = 0; i < 3; i++) ...[
+            Opacity(
+              opacity: () {
+                final t = (_c.value - i * 0.15) % 1.0;
+                return t < 0.4 ? 0.2 + t / 0.4 * 0.8 : 1.0 - (t - 0.4) / 0.6 * 0.8;
+              }(),
+              child: Container(
+                width: 6,
+                height: 6,
+                decoration: BoxDecoration(
+                    color: AppColors.primary, shape: BoxShape.circle),
+              ),
+            ),
+            if (i < 2) const SizedBox(width: 4),
+          ],
         ],
       ),
     );
