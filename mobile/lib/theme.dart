@@ -548,6 +548,49 @@ class DottedLeader extends StatelessWidget {
       );
 }
 
+/// Fiş satırı: [left] ..... [right]. Noktalar arka planda boydan boya uzanır,
+/// iki uçtaki metin [background] rengiyle noktaları örter.
+class LeaderRow extends StatelessWidget {
+  final Widget left;
+  final Widget right;
+  final Color? background;
+  const LeaderRow(
+      {super.key, required this.left, required this.right, this.background});
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = background ?? AppColors.background;
+    return Stack(
+      alignment: Alignment.centerLeft,
+      children: [
+        const Positioned.fill(
+          child: Align(
+            alignment: Alignment(0, 0.35),
+            child: SizedBox(width: double.infinity, child: DottedLeader()),
+          ),
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Flexible(
+              child: ColoredBox(
+                color: bg,
+                child: Padding(
+                    padding: const EdgeInsets.only(right: 10), child: left),
+              ),
+            ),
+            ColoredBox(
+              color: bg,
+              child: Padding(
+                  padding: const EdgeInsets.only(left: 10), child: right),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
 class _DotsPainter extends CustomPainter {
   final Color color;
   _DotsPainter(this.color);

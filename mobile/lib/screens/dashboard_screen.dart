@@ -85,14 +85,14 @@ class DashboardScreenState extends State<DashboardScreen> {
     return Scaffold(
       body: RefreshIndicator(
         onRefresh: () async => refresh(),
-        color: AppColors.onSurface,
+        color: AppColors.primary,
         backgroundColor: AppColors.surface,
         child: FutureBuilder<_DashData>(
           future: _future,
           builder: (context, snap) {
             if (snap.connectionState == ConnectionState.waiting) {
               return Center(
-                  child: CircularProgressIndicator(color: AppColors.onSurface));
+                  child: CircularProgressIndicator(color: AppColors.primary));
             }
             if (snap.hasError) {
               return LoadError(error: snap.error!, onRetry: refresh);
@@ -101,28 +101,59 @@ class DashboardScreenState extends State<DashboardScreen> {
             final s = d.summary;
 
             return ListView(
-              padding: const EdgeInsets.fromLTRB(24, 56, 24, 120),
+              padding: const EdgeInsets.fromLTRB(20, 56, 20, 120),
               children: [
                 Rise(child: _header(d.name)),
-                const SizedBox(height: 44),
-                Rise(delayMs: 40, child: _balance(s.balance)),
-                const SizedBox(height: 22),
-                Rise(
-                    delayMs: 60,
-                    child: _incomeExpense(s.totalIncome, s.totalExpense)),
                 const SizedBox(height: 40),
-                if (d.goals.isNotEmpty)
-                  Rise(delayMs: 90, child: _goalLine(d.goals.first)),
-                if (d.goals.isNotEmpty) const SizedBox(height: 40),
+                Rise(delayMs: 80, child: _balance(s.balance)),
+                const SizedBox(height: 24),
                 Rise(
-                    delayMs: 120,
+                    delayMs: 160,
+                    child: _incomeExpense(s.totalIncome, s.totalExpense)),
+                const SizedBox(height: 16),
+                if (d.goals.isNotEmpty)
+                  Rise(delayMs: 240, child: _goalLine(d.goals.first)),
+                const SizedBox(height: 40),
+                Rise(
+                    delayMs: 300,
                     child: _spending(s.monthByCategory, s.monthExpense)),
                 const SizedBox(height: 40),
-                Rise(delayMs: 150, child: _recent(d.recent)),
+                Rise(delayMs: 360, child: _recent(d.recent)),
               ],
             );
           },
         ),
+      ),
+    );
+  }
+
+  Widget _sectionTitle(String title, {String? trailing}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Text(title,
+            style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w400,
+                letterSpacing: -0.4,
+                color: AppColors.onSurface)),
+        if (trailing != null) Eyebrow(trailing),
+      ],
+    );
+  }
+
+  Widget _circleButton(IconData icon, VoidCallback onTap) {
+    return Press(
+      onTap: onTap,
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: AppColors.glassBorder),
+        ),
+        child: Icon(icon, size: 19, color: AppColors.onSurface),
       ),
     );
   }
@@ -134,64 +165,37 @@ class DashboardScreenState extends State<DashboardScreen> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(_greeting.toUpperCase(),
-                style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    letterSpacing: 0.6,
-                    color: AppColors.outline)),
-            const SizedBox(height: 2),
-            Text(name,
-                style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.4,
-                    color: AppColors.onSurface)),
-          ],
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Eyebrow(_greeting),
+              const SizedBox(height: 6),
+              Text(name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: -0.3,
+                      color: AppColors.onSurface)),
+            ],
+          ),
         ),
-        Row(
-          children: [
-            Press(
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const ChatScreen()),
-                );
-              },
-              child: Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.surfaceContainer),
-                ),
-                child: Icon(Icons.psychology_outlined,
-                    size: 18, color: AppColors.onSurfaceVariant),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Press(
-              onTap: toggleThemeMode,
-              child: Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.surfaceContainer),
-                ),
-                child: Icon(isDark ? Icons.dark_mode_outlined : Icons.light_mode_outlined,
-                    size: 18, color: AppColors.onSurfaceVariant),
-              ),
-            ),
-          ],
-        ),
+        _circleButton(Icons.psychology_outlined, () {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const ChatScreen()),
+          );
+        }),
+        const SizedBox(width: 8),
+        _circleButton(
+            isDark ? Icons.dark_mode_outlined : Icons.light_mode_outlined,
+            toggleThemeMode),
       ],
     );
   }
 
-  // ---- Bakiye (kart yok) ----
+  // ---- Bakiye: ince, büyük, 0'dan sayarak gelir ----
   Widget _balance(double balance) {
     final converted = CurrencyService.convertFromTry(balance, currencyNotifier.value);
     final neg = converted < 0;
@@ -203,31 +207,30 @@ class DashboardScreenState extends State<DashboardScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('TOPLAM BAKİYE',
-            style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                letterSpacing: 0.6,
-                color: AppColors.outline)),
-        const SizedBox(height: 8),
+        const Eyebrow('Toplam bakiye'),
+        const SizedBox(height: 12),
         Row(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Text('${neg ? '−' : ''}$symbol${_grp.format(whole)}',
-                style: TextStyle(
-                    fontSize: 52,
-                    fontWeight: FontWeight.w800,
-                    height: 1,
-                    letterSpacing: -1.5,
-                    color: AppColors.onSurface,
-                    fontFeatures: kTnum)),
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: CountUp(
+                  value: whole.toDouble(),
+                  format: (v) =>
+                      '${neg ? '−' : ''}$symbol${_grp.format(v.round())}',
+                  style: AppText.display(size: 58),
+                ),
+              ),
+            ),
             Padding(
-              padding: const EdgeInsets.only(bottom: 6, left: 2),
+              padding: const EdgeInsets.only(bottom: 7, left: 2),
               child: Text('$sep${cents.toString().padLeft(2, '0')}',
                   style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.outline,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w400,
+                      color: AppColors.onSurfaceVariant,
                       fontFeatures: kTnum)),
             ),
           ],
@@ -236,292 +239,267 @@ class DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // ---- Gelir / Gider satırı ----
+  // ---- Gelir / Gider ----
   Widget _incomeExpense(double income, double expense) {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border(
-          top: BorderSide(color: AppColors.glassBorder),
-          bottom: BorderSide(color: AppColors.glassBorder),
-        ),
-      ),
+    return GlassCard(
+      padding: EdgeInsets.zero,
       child: IntrinsicHeight(
         child: Row(
           children: [
-            Expanded(child: _ieCell('GELİR', income)),
+            Expanded(child: _ieCell('Gelir', income, AppColors.positive, '+')),
             Container(width: 1, color: AppColors.glassBorder),
-            Expanded(child: _ieCell('GİDER', expense, padLeft: true)),
+            Expanded(child: _ieCell('Gider', expense, AppColors.onSurface, '−')),
           ],
         ),
       ),
     );
   }
 
-  Widget _ieCell(String label, double value, {bool padLeft = false}) {
+  Widget _ieCell(String label, double value, Color color, String sign) {
     return Padding(
-      padding: EdgeInsets.fromLTRB(padLeft ? 20 : 0, 16, 16, 16),
+      padding: const EdgeInsets.fromLTRB(20, 18, 16, 18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label,
-              style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: 0.6,
-                  color: AppColors.outline)),
-          const SizedBox(height: 6),
-          Text(money(value),
-              style: TextStyle(
-                  fontSize: 19,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.onSurface,
-                  fontFeatures: kTnum)),
+          Eyebrow(label, size: 11),
+          const SizedBox(height: 8),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text('$sign${money(value)}',
+                style: AppText.display(size: 24, color: color)),
+          ),
         ],
       ),
     );
   }
 
-  // ---- Tasarruf hedefi (tek satır) ----
+  // ---- Tasarruf hedefi: lacivert panel (web'deki hedef kartı) ----
   Widget _goalLine(GoalModel g) {
+    final ink = AppColors.onPrimary;
     return Press(
       onTap: () async {
         await Navigator.of(context)
             .push(MaterialPageRoute(builder: (_) => const GoalsScreen()));
         refresh();
       },
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(g.title,
-                  style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.onSurface)),
-              Text('${money(g.currentAmount)} / ${money(g.targetAmount)}',
-                  style: TextStyle(
-                      fontSize: 12,
-                      color: AppColors.outline,
-                      fontFeatures: kTnum)),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(99),
-                  child: TweenAnimationBuilder<double>(
-                    tween: Tween(begin: 0, end: g.progress.clamp(0, 1)),
-                    duration: const Duration(milliseconds: 900),
-                    curve: Curves.easeOutCubic,
-                    builder: (context, v, _) => LinearProgressIndicator(
-                      value: v,
-                      minHeight: 6,
-                      backgroundColor: AppColors.surfaceContainer,
-                      color: AppColors.primary,
-                    ),
-                  ),
+      child: GlassCard(
+        color: AppColors.primary,
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 22),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Eyebrow('Tasarruf hedefi',
+                    size: 11, color: ink.withValues(alpha: 0.75)),
+                Icon(Icons.arrow_forward, size: 18, color: ink),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Expanded(
+                  child: Text(g.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          fontSize: 20, fontWeight: FontWeight.w500, color: ink)),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Text('%${(g.progress * 100).toStringAsFixed(0)}',
-                  style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.onSurface,
-                      fontFeatures: kTnum)),
-            ],
-          ),
-        ],
+                Text('%${(g.progress * 100).toStringAsFixed(0)}',
+                    style: AppText.mono(size: 15, color: ink)),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ExBar(
+                value: g.progress,
+                color: ink,
+                track: ink.withValues(alpha: 0.2)),
+            const SizedBox(height: 10),
+            Text('${money(g.currentAmount)} / ${money(g.targetAmount)}',
+                style: AppText.mono(size: 13, color: ink.withValues(alpha: 0.75))),
+          ],
+        ),
       ),
     );
   }
 
-  // ---- Harcama dağılımı: bu ayın giderleri (monokrom donut) ----
+  // ---- Harcama dağılımı: bu ayın giderleri ----
   Widget _spending(
       List<({String category, double total})> byCategory, double expense) {
     // Backend zaten büyükten küçüğe sıralı gönderir.
     final entries = [for (final c in byCategory) MapEntry(c.category, c.total)];
     final top = entries.take(4).toList();
 
-    // Kategori renkleriyle canlı donut (diğer ekranlarla tutarlı).
     Color ramp(int i) => categoryColor(top[i].key);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text('Harcama Dağılımı',
-                style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.onSurface)),
-            Text(DateFormat.MMMM('tr_TR').format(DateTime.now()),
-                style: TextStyle(fontSize: 12, color: AppColors.outline)),
-          ],
-        ),
-        const SizedBox(height: 24),
-        if (entries.isEmpty)
-          Text('Gider verisi yok',
-              style: TextStyle(color: AppColors.onSurfaceVariant))
-        else
-          Row(
-            children: [
-              SizedBox(
-                width: 116,
-                height: 116,
-                child: Stack(
-                  alignment: Alignment.center,
+        _sectionTitle('Harcama dağılımı',
+            trailing: DateFormat.MMMM('tr_TR').format(DateTime.now())),
+        const SizedBox(height: 16),
+        GlassCard(
+          child: entries.isEmpty
+              ? Text('Bu ay henüz gider yok.',
+                  style:
+                      TextStyle(fontSize: 16, color: AppColors.onSurfaceVariant))
+              : Row(
                   children: [
-                    PieChart(
-                      PieChartData(
-                        sectionsSpace: 3,
-                        centerSpaceRadius: 40,
-                        sections: [
+                    SizedBox(
+                      width: 124,
+                      height: 124,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          // Halka açılışta incelikten kalınlığa büyür.
+                          TweenAnimationBuilder<double>(
+                            tween: Tween(begin: 0, end: 1),
+                            duration: AppMotion.slow,
+                            curve: AppMotion.curve,
+                            builder: (context, t, _) => PieChart(
+                              PieChartData(
+                                sectionsSpace: 2,
+                                startDegreeOffset: -90,
+                                centerSpaceRadius: 44,
+                                sections: [
+                                  for (var i = 0; i < top.length; i++)
+                                    PieChartSectionData(
+                                      value: top[i].value,
+                                      color: ramp(i),
+                                      radius: 2 + 10 * t,
+                                      showTitle: false,
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Eyebrow('Gider', size: 10),
+                              const SizedBox(height: 4),
+                              Text(money(expense), style: AppText.mono(size: 13)),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 24),
+                    Expanded(
+                      child: Column(
+                        children: [
                           for (var i = 0; i < top.length; i++)
-                            PieChartSectionData(
-                              value: top[i].value,
-                              color: ramp(i),
-                              radius: 12,
-                              showTitle: false,
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 10,
+                                    height: 10,
+                                    decoration: BoxDecoration(
+                                        color: ramp(i),
+                                        borderRadius: BorderRadius.circular(3)),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(top[i].key,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                            fontSize: 16,
+                                            color: AppColors.onSurface)),
+                                  ),
+                                  Text(
+                                      '%${(expense == 0 ? 0 : top[i].value / expense * 100).toStringAsFixed(0)}',
+                                      style: AppText.mono(
+                                          size: 13,
+                                          color: AppColors.onSurfaceVariant)),
+                                ],
+                              ),
                             ),
                         ],
                       ),
-                      duration: const Duration(milliseconds: 700),
                     ),
-                    Text(money(expense),
-                        style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.onSurface,
-                            fontFeatures: kTnum)),
                   ],
                 ),
-              ),
-              const SizedBox(width: 28),
-              Expanded(
-                child: Column(
-                  children: [
-                    for (var i = 0; i < top.length; i++)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 7),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 10,
-                              height: 10,
-                              decoration: BoxDecoration(
-                                  color: ramp(i),
-                                  borderRadius: BorderRadius.circular(2)),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(top[i].key,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                      fontSize: 13,
-                                      color: AppColors.onSurfaceVariant)),
-                            ),
-                            Text(
-                                '%${(expense == 0 ? 0 : top[i].value / expense * 100).toStringAsFixed(0)}',
-                                style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.onSurface,
-                                    fontFeatures: kTnum)),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+        ),
       ],
     );
   }
 
-  // ---- Son işlemler (düz liste) ----
+  // ---- Son işlemler: fiş düzeni (not ..... tutar) ----
   Widget _recent(List<TransactionModel> txs) {
     final list = txs.take(6).toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Son İşlemler',
-            style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: AppColors.onSurface)),
+        _sectionTitle('Son işlemler'),
         const SizedBox(height: 8),
         if (list.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 24),
             child: Text('Henüz işlem yok. + ile ekle.',
-                style: TextStyle(color: AppColors.onSurfaceVariant)),
+                style:
+                    TextStyle(fontSize: 16, color: AppColors.onSurfaceVariant)),
           )
         else
-          for (var i = 0; i < list.length; i++) _txRow(list[i], i < list.length - 1),
+          for (var i = 0; i < list.length; i++)
+            Rise(
+                delayMs: 400 + i * 60,
+                child: _txRow(list[i], i < list.length - 1)),
       ],
     );
   }
 
   Widget _txRow(TransactionModel t, bool border) {
     final isIncome = t.type == 'income';
-    return Press(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-          border: border
-              ? Border(bottom: BorderSide(color: AppColors.glassBorder))
-              : null,
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                  color: categoryColor(t.category).withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(11)),
-              child: Icon(categoryIcon(t.category),
-                  size: 18, color: categoryColor(t.category)),
-            ),
-            const SizedBox(width: 13),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(t.note.isEmpty ? t.category : t.note,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.onSurface)),
-                  const SizedBox(height: 2),
-                  Text('${t.category} · ${t.occurredOn}',
-                      style: TextStyle(fontSize: 12, color: AppColors.outline)),
-                ],
-              ),
-            ),
-            Text('${isIncome ? '+' : '−'}${money(t.amount)}',
+    final title = t.note.isEmpty ? t.category : t.note;
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      decoration: BoxDecoration(
+        border: border
+            ? Border(bottom: BorderSide(color: AppColors.glassBorder))
+            : null,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          LeaderRow(
+            left: Text(title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                    fontSize: 14.5,
-                    fontWeight: FontWeight.w600,
-                    color: isIncome ? AppColors.primary : AppColors.onSurface,
-                    fontFeatures: kTnum)),
-          ],
-        ),
+                    fontSize: 17,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.onSurface)),
+            right: Text('${isIncome ? '+' : '−'}${money(t.amount)}',
+                style: AppText.mono(
+                    size: 15,
+                    color: isIncome ? AppColors.positive : AppColors.onSurface)),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Container(
+                width: 7,
+                height: 7,
+                decoration: BoxDecoration(
+                    color: categoryColor(t.category),
+                    borderRadius: BorderRadius.circular(2)),
+              ),
+              const SizedBox(width: 8),
+              Eyebrow(t.category, size: 11),
+              const SizedBox(width: 10),
+              Text(t.occurredOn,
+                  style:
+                      AppText.mono(size: 12, color: AppColors.onSurfaceVariant)),
+            ],
+          ),
+        ],
       ),
     );
   }
-
 }
