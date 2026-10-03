@@ -92,7 +92,7 @@ class HistoryScreenState extends State<HistoryScreen> {
         children: [
           // ---- Başlık ----
           Padding(
-            padding: const EdgeInsets.fromLTRB(24, 56, 24, 0),
+            padding: const EdgeInsets.fromLTRB(20, 56, 20, 0),
             child: FutureBuilder<List<TransactionModel>>(
               future: _future,
               builder: (context, snap) {
@@ -104,35 +104,31 @@ class HistoryScreenState extends State<HistoryScreen> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('İşlemler',
+                        Eyebrow(DateFormat('MMMM yyyy', 'tr_TR')
+                            .format(DateTime.now())),
+                        const SizedBox(height: 10),
+                        Text('İşlemler', style: AppText.display(size: 38)),
+                        const SizedBox(height: 8),
+                        Text('$count işlem',
                             style: TextStyle(
-                                fontSize: 26,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: -0.6,
-                                height: 1,
-                                color: AppColors.onSurface)),
-                        const SizedBox(height: 6),
-                        Text(
-                            '${DateFormat('MMMM yyyy', 'tr_TR').format(DateTime.now())} · $count işlem',
-                            style: TextStyle(
-                                fontSize: 12.5, color: AppColors.outline)),
+                                fontSize: 15,
+                                color: AppColors.onSurfaceVariant)),
                       ],
                     ),
                     Press(
                       onTap: toggleThemeMode,
                       child: Container(
-                        width: 40,
-                        height: 40,
+                        width: 44,
+                        height: 44,
                         decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            border:
-                                Border.all(color: AppColors.surfaceContainer)),
+                            border: Border.all(color: AppColors.glassBorder)),
                         child: Icon(
                             isDark
                                 ? Icons.dark_mode_outlined
                                 : Icons.light_mode_outlined,
-                            size: 18,
-                            color: AppColors.onSurfaceVariant),
+                            size: 19,
+                            color: AppColors.onSurface),
                       ),
                     ),
                   ],
@@ -140,34 +136,37 @@ class HistoryScreenState extends State<HistoryScreen> {
               },
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 22),
 
           // ---- Arama ----
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
+            padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
               decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(14),
+                color: AppColors.surfaceBright,
+                borderRadius: BorderRadius.circular(AppRadius.md),
                 border: Border.all(color: AppColors.glassBorder),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.search, size: 18, color: AppColors.outline),
+                  Icon(Icons.search, size: 19, color: AppColors.onSurfaceVariant),
                   const SizedBox(width: 10),
                   Expanded(
                     child: TextField(
                       controller: _searchCtrl,
                       onChanged: _onSearch,
                       style:
-                          TextStyle(fontSize: 14, color: AppColors.onSurface),
+                          TextStyle(fontSize: 17, color: AppColors.onSurface),
                       decoration: InputDecoration(
                         isCollapsed: true,
+                        filled: false,
                         border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
                         hintText: 'İşlem veya not ara…',
                         hintStyle:
-                            TextStyle(color: AppColors.outline, fontSize: 14),
+                            TextStyle(color: AppColors.outline, fontSize: 17),
                       ),
                     ),
                   ),
@@ -188,10 +187,10 @@ class HistoryScreenState extends State<HistoryScreen> {
 
           // ---- Kategori çipleri ----
           SizedBox(
-            height: 56,
+            height: 64,
             child: ListView(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 4),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
               children: [
                 _chip('Tümü', null),
                 ...kCategories.map((c) => _chip(c, c)),
@@ -230,13 +229,24 @@ class HistoryScreenState extends State<HistoryScreen> {
         child: Press(
           onTap: _openAdd,
           child: Container(
-            width: 52,
-            height: 52,
+            height: 54,
+            padding: const EdgeInsets.symmetric(horizontal: 22),
             decoration: BoxDecoration(
               color: AppColors.primary,
-              shape: BoxShape.circle,
+              borderRadius: BorderRadius.circular(AppRadius.pill),
             ),
-            child: Icon(Icons.add, color: AppColors.onPrimary, size: 26),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.add, color: AppColors.onPrimary, size: 22),
+                const SizedBox(width: 8),
+                Text('İşlem ekle',
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.onPrimary)),
+              ],
+            ),
           ),
         ),
       ),
@@ -252,15 +262,14 @@ class HistoryScreenState extends State<HistoryScreen> {
           _category = value;
           refresh();
         }),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+        child: AnimatedContainer(
+          duration: AppMotion.fast,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
             color: active ? AppColors.primary : Colors.transparent,
-            borderRadius: BorderRadius.circular(99),
+            borderRadius: BorderRadius.circular(AppRadius.pill),
             border: Border.all(
-                color: active
-                    ? Colors.transparent
-                    : AppColors.surfaceContainerHigh),
+                color: active ? AppColors.primary : AppColors.glassBorder),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -276,11 +285,9 @@ class HistoryScreenState extends State<HistoryScreen> {
               ],
               Text(label,
                   style: TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w600,
-                      color: active
-                          ? AppColors.onPrimary
-                          : AppColors.onSurfaceVariant)),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      color: active ? AppColors.onPrimary : AppColors.onSurface)),
             ],
           ),
         ),
@@ -296,30 +303,27 @@ class HistoryScreenState extends State<HistoryScreen> {
     }
 
     final children = <Widget>[];
+    var n = 0;
     groups.forEach((label, items) {
       final net = items.fold(
           0.0, (s, t) => s + (t.type == 'income' ? t.amount : -t.amount));
       children.add(Padding(
-        padding: const EdgeInsets.fromLTRB(24, 18, 24, 8),
+        padding: const EdgeInsets.fromLTRB(20, 22, 20, 6),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label.toUpperCase(),
-                style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.6,
-                    color: AppColors.outline)),
+            Eyebrow(label, size: 11),
             // money() eksi işaretini kendisi ekler; artıyı showSign ile ister.
             Text(money(net, showSign: true),
-                style: TextStyle(
-                    fontSize: 11.5,
-                    color: AppColors.outline,
-                    fontFeatures: kTnum)),
+                style: AppText.mono(size: 13, color: AppColors.onSurfaceVariant)),
           ],
         ),
       ));
-      children.addAll(items.map(_txRow));
+      for (final t in items) {
+        // İlk ekrandaki satırlar sırayla belirir; aşağıdakiler beklemeden gelir.
+        children.add(Rise(delayMs: n < 10 ? n * 50 : 0, child: _txRow(t)));
+        n++;
+      }
     });
 
     return ListView(
@@ -341,14 +345,14 @@ class HistoryScreenState extends State<HistoryScreen> {
         padding: const EdgeInsets.only(right: 24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            Icon(Icons.delete_outline, color: Colors.white, size: 20),
-            SizedBox(height: 3),
+          children: [
+            Icon(Icons.delete_outline, color: AppColors.surface, size: 20),
+            const SizedBox(height: 3),
             Text('Sil',
                 style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600)),
+                    color: AppColors.surface,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500)),
           ],
         ),
       ),
@@ -361,44 +365,53 @@ class HistoryScreenState extends State<HistoryScreen> {
         onTap: () => _edit(t),
         child: Container(
           color: AppColors.background,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           child: Row(
             children: [
               Container(
-                width: 42,
-                height: 42,
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(13),
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
                 ),
-                child: Icon(categoryIcon(t.category), size: 19, color: color),
+                child: Icon(categoryIcon(t.category), size: 18, color: color),
               ),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(t.note.isEmpty ? t.category : t.note,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                            fontSize: 14.5,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.onSurface)),
-                    const SizedBox(height: 2),
-                    Text(
-                        '${t.category}${time != null && (time.hour != 0 || time.minute != 0) ? ' · ${DateFormat('HH:mm').format(time)}' : ''}',
-                        style:
-                            TextStyle(fontSize: 12, color: AppColors.outline)),
+                    LeaderRow(
+                      left: Text(t.note.isEmpty ? t.category : t.note,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.onSurface)),
+                      right: Text('${isIncome ? '+' : '−'}${money(t.amount)}',
+                          style: AppText.mono(
+                              size: 15,
+                              color: isIncome
+                                  ? AppColors.positive
+                                  : AppColors.onSurface)),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Eyebrow(t.category, size: 11),
+                        if (time != null && (time.hour != 0 || time.minute != 0)) ...[
+                          const SizedBox(width: 10),
+                          Text(DateFormat('HH:mm').format(time),
+                              style: AppText.mono(
+                                  size: 12, color: AppColors.onSurfaceVariant)),
+                        ],
+                      ],
+                    ),
                   ],
                 ),
               ),
-              Text('${isIncome ? '+' : '−'}${money(t.amount)}',
-                  style: TextStyle(
-                      fontSize: 14.5,
-                      fontWeight: FontWeight.w600,
-                      color: isIncome ? color : AppColors.onSurface,
-                      fontFeatures: kTnum)),
             ],
           ),
         ),
@@ -407,89 +420,10 @@ class HistoryScreenState extends State<HistoryScreen> {
   }
 
   Future<bool> _confirmDelete(TransactionModel t) async {
-    return await showDialog<bool>(
-          context: context,
-          builder: (ctx) => Dialog(
-            backgroundColor: AppColors.surface,
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-                side: BorderSide(color: AppColors.glassBorder)),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                        color: AppColors.error.withValues(alpha: 0.14),
-                        shape: BoxShape.circle),
-                    child: Icon(Icons.delete_outline,
-                        color: AppColors.error, size: 22),
-                  ),
-                  const SizedBox(height: 14),
-                  Text('İşlemi sil?',
-                      style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.onSurface)),
-                  const SizedBox(height: 6),
-                  Text(
-                      '"${t.note.isEmpty ? t.category : t.note}" kalıcı olarak silinecek.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                          fontSize: 13,
-                          height: 1.5,
-                          color: AppColors.onSurfaceVariant)),
-                  const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Press(
-                          onTap: () => Navigator.pop(ctx, false),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 13),
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                                color: AppColors.surface,
-                                borderRadius: BorderRadius.circular(13),
-                                border: Border.all(
-                                    color: AppColors.surfaceContainerHigh)),
-                            child: Text('Vazgeç',
-                                style: TextStyle(
-                                    fontSize: 13.5,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.onSurface)),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Press(
-                          onTap: () => Navigator.pop(ctx, true),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 13),
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                                color: AppColors.error,
-                                borderRadius: BorderRadius.circular(13)),
-                            child: const Text('Sil',
-                                style: TextStyle(
-                                    fontSize: 13.5,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.white)),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ) ??
-        false;
+    return showConfirmDialog(context,
+        title: 'İşlemi sil?',
+        message:
+            '"${t.note.isEmpty ? t.category : t.note}" kalıcı olarak silinecek.');
   }
 
   Widget _empty() {
@@ -497,17 +431,17 @@ class HistoryScreenState extends State<HistoryScreen> {
       children: [
         const SizedBox(height: 80),
         Icon(Icons.search_off, size: 40, color: AppColors.outline),
-        const SizedBox(height: 14),
+        const SizedBox(height: 16),
         Center(
             child: Text('Sonuç bulunamadı',
                 style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.onSurfaceVariant))),
-        const SizedBox(height: 4),
+                    fontSize: 20,
+                    fontWeight: FontWeight.w400,
+                    color: AppColors.onSurface))),
+        const SizedBox(height: 6),
         Center(
             child: Text('Farklı bir arama veya kategori dene.',
-                style: TextStyle(fontSize: 12.5, color: AppColors.outline))),
+                style: TextStyle(fontSize: 15, color: AppColors.onSurfaceVariant))),
       ],
     );
   }

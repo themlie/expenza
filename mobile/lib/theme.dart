@@ -638,6 +638,75 @@ class _PressState extends State<Press> {
   }
 }
 
+/// Ortak onay penceresi (silme vb.). Kiremit vurgu yıkıcı işlemler için.
+Future<bool> showConfirmDialog(
+  BuildContext context, {
+  required String title,
+  required String message,
+  String confirm = 'Sil',
+  String cancel = 'Vazgeç',
+  bool destructive = true,
+  IconData icon = Icons.delete_outline,
+}) async {
+  final accent = destructive ? AppColors.error : AppColors.primary;
+  final r = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => Dialog(
+      backgroundColor: AppColors.surface,
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          side: BorderSide(color: AppColors.glassBorder)),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.12), shape: BoxShape.circle),
+              child: Icon(icon, color: accent, size: 21),
+            ),
+            const SizedBox(height: 18),
+            Text(title,
+                style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w400,
+                    letterSpacing: -0.3,
+                    color: AppColors.onSurface)),
+            const SizedBox(height: 8),
+            Text(message,
+                style: TextStyle(
+                    fontSize: 16, height: 1.5, color: AppColors.onSurfaceVariant)),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: Text(cancel)),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: FilledButton(
+                      style: FilledButton.styleFrom(
+                          backgroundColor: accent,
+                          foregroundColor: AppColors.surface),
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: Text(confirm)),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+  return r ?? false;
+}
+
 /// Veri alınamadığında gösterilen ortak hata görünümü (aşağı çekerek de yenilenebilir).
 class LoadError extends StatelessWidget {
   final Object error;
