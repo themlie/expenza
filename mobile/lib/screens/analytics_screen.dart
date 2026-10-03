@@ -7,10 +7,7 @@ import '../models.dart';
 import '../theme.dart';
 import 'dashboard_screen.dart' show categoryColor, categoryIcon, money;
 
-const _forecastColor = Color(0xFF6EA8FE);
-const _okColor = Color(0xFF46F1C5);
-
-/// Analitik (İP-4) — premium: tahmin kartı, harcama trendi (gerçekleşen + tahmin),
+/// Analitik (İP-4): tahmin paneli, harcama trendi (gerçekleşen + tahmin),
 /// harcama hızı, olağandışı harcamalar, en çok harcanan kategoriler.
 class AnalyticsScreen extends StatefulWidget {
   const AnalyticsScreen({super.key});
@@ -48,39 +45,46 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
     return (i >= 1 && i <= 12) ? m[i - 1] : yyyyMm;
   }
 
+  // Koyu panel (web'deki "Gelecek ay tahmini" kartı). Koyu modda bir ton açık.
+  Color get _panelBg =>
+      AppColors.isDark ? AppColors.surfaceContainer : const Color(0xFF26282C);
+  static const _panelInk = Color(0xFFEDE6D9);
+  static const _panelMuted = Color(0xFFA9A69E);
+  static const _panelLine = Color(0xFF44474D);
+
   @override
   Widget build(BuildContext context) {
     final isDark = themeModeNotifier.value == ThemeMode.dark;
     return Scaffold(
       body: RefreshIndicator(
         onRefresh: () async => refresh(),
-        color: AppColors.onSurface,
+        color: AppColors.primary,
         backgroundColor: AppColors.surface,
         child: FutureBuilder<_Data>(
           future: _future,
           builder: (context, snap) {
             if (snap.connectionState == ConnectionState.waiting) {
               return Center(
-                  child: CircularProgressIndicator(color: AppColors.onSurface));
+                  child: CircularProgressIndicator(color: AppColors.primary));
             }
             if (snap.hasError) {
               return LoadError(error: snap.error!, onRetry: refresh);
             }
             final d = snap.data!;
             return ListView(
-              padding: const EdgeInsets.fromLTRB(24, 56, 24, 120),
+              padding: const EdgeInsets.fromLTRB(20, 56, 20, 120),
               children: [
                 Rise(child: _header(isDark)),
-                const SizedBox(height: 24),
-                Rise(delayMs: 40, child: _forecastCard(d.forecast)),
-                const SizedBox(height: 14),
-                Rise(delayMs: 80, child: _trendCard(d.forecast)),
-                const SizedBox(height: 14),
-                Rise(delayMs: 120, child: _velocityCard(d.forecast)),
-                const SizedBox(height: 14),
-                Rise(delayMs: 160, child: _anomaliesSection(d.anomalies)),
-                const SizedBox(height: 14),
-                Rise(delayMs: 200, child: _topCategories(d.txs)),
+                const SizedBox(height: 28),
+                Rise(delayMs: 80, child: _forecastCard(d.forecast)),
+                const SizedBox(height: 16),
+                Rise(delayMs: 160, child: _trendCard(d.forecast)),
+                const SizedBox(height: 16),
+                Rise(delayMs: 240, child: _velocityCard(d.forecast)),
+                const SizedBox(height: 36),
+                Rise(delayMs: 300, child: _anomaliesSection(d.anomalies)),
+                const SizedBox(height: 36),
+                Rise(delayMs: 360, child: _topCategories(d.txs)),
               ],
             );
           },
@@ -89,15 +93,21 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
     );
   }
 
-  Widget _card({required Widget child, EdgeInsets? padding}) {
-    return Container(
-      padding: padding ?? const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.glassBorder),
-      ),
-      child: child,
+  Widget _title(String text, {Widget? trailing}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Flexible(
+          child: Text(text,
+              style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w400,
+                  letterSpacing: -0.4,
+                  color: AppColors.onSurface)),
+        ),
+        ?trailing,
+      ],
     );
   }
 
@@ -109,106 +119,94 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Analitik',
-                style: TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.6,
-                    height: 1,
-                    color: AppColors.onSurface)),
-            const SizedBox(height: 6),
-            Text(
-                '${DateFormat('MMMM yyyy', 'tr_TR').format(DateTime.now())} · içgörüler',
-                style: TextStyle(fontSize: 12.5, color: AppColors.outline)),
+            Eyebrow(DateFormat('MMMM yyyy', 'tr_TR').format(DateTime.now())),
+            const SizedBox(height: 10),
+            Text('Analitik', style: AppText.display(size: 38)),
+            const SizedBox(height: 8),
+            Text('Ay bitmeden ay sonunu gör.',
+                style: TextStyle(fontSize: 15, color: AppColors.onSurfaceVariant)),
           ],
         ),
         Press(
           onTap: toggleThemeMode,
           child: Container(
-            width: 40,
-            height: 40,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: AppColors.surfaceContainer)),
+                border: Border.all(color: AppColors.glassBorder)),
             child: Icon(
                 isDark ? Icons.dark_mode_outlined : Icons.light_mode_outlined,
-                size: 18,
-                color: AppColors.onSurfaceVariant),
+                size: 19,
+                color: AppColors.onSurface),
           ),
         ),
       ],
     );
   }
 
-  // ---- Tahmin kartı ----
+  // ---- Tahmin paneli ----
   Widget _forecastCard(ForecastModel f) {
     final last = f.history.isNotEmpty ? f.history.last.total : 0.0;
     final hasChange = last > 0;
     final pct = hasChange ? (f.nextMonthPrediction - last) / last * 100 : 0.0;
     final up = pct >= 0;
-    return _card(
-      padding: const EdgeInsets.all(22),
+    return GlassCard(
+      color: _panelBg,
+      padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(Icons.show_chart, size: 16, color: _forecastColor),
-              const SizedBox(width: 8),
-              Text('GELECEK AY TAHMİNİ',
-                  style: TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.4,
-                      color: AppColors.onSurfaceVariant)),
-            ],
+          const Eyebrow('Gelecek ay tahmini', color: _panelMuted),
+          const SizedBox(height: 14),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: CountUp(
+              value: f.nextMonthPrediction,
+              format: money,
+              style: AppText.display(size: 52, color: _panelInk),
+            ),
           ),
           const SizedBox(height: 14),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(money(f.nextMonthPrediction),
-                  style: TextStyle(
-                      fontSize: 38,
-                      fontWeight: FontWeight.w800,
-                      height: 1,
-                      color: AppColors.onSurface,
-                      fontFeatures: kTnum)),
-              if (hasChange) ...[
-                const SizedBox(width: 8),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 5),
-                  child: Text('${up ? '↑' : '↓'} %${pct.abs().toStringAsFixed(0)}',
-                      style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: up ? AppColors.error : _okColor,
+          if (hasChange)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                  color: _panelInk.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(AppRadius.pill)),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(up ? Icons.arrow_upward : Icons.arrow_downward,
+                      size: 14,
+                      color: up ? const Color(0xFFE0916B) : const Color(0xFFA9B8DC)),
+                  const SizedBox(width: 6),
+                  Text('%${pct.abs().toStringAsFixed(0)} geçen aya göre',
+                      style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: _panelInk,
                           fontFeatures: kTnum)),
-                ),
-              ],
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-              hasChange
-                  ? 'Geçen aya göre tahmini ${up ? 'artış' : 'azalış'}'
-                  : 'Mevcut verilere göre tahmin',
-              style: TextStyle(fontSize: 12.5, color: AppColors.outline)),
-          const SizedBox(height: 16),
+                ],
+              ),
+            )
+          else
+            const Text('Mevcut verilere göre tahmin',
+                style: TextStyle(fontSize: 14, color: _panelMuted)),
+          const SizedBox(height: 22),
           Container(
-            padding: const EdgeInsets.only(top: 16),
-            decoration: BoxDecoration(
-                border:
-                    Border(top: BorderSide(color: AppColors.glassBorder))),
+            padding: const EdgeInsets.only(top: 18),
+            decoration: const BoxDecoration(
+                border: Border(top: BorderSide(color: _panelLine))),
             child: IntrinsicHeight(
               child: Row(
                 children: [
                   Expanded(
-                      child: _miniCol(
-                          'AY SONU PROJEKSİYONU', f.projectedMonthEnd)),
-                  Container(width: 1, color: AppColors.glassBorder),
+                      child: _miniCol('Ay sonu projeksiyonu', f.projectedMonthEnd)),
+                  Container(width: 1, color: _panelLine),
                   Expanded(
-                      child: _miniCol('BU ANA DEK', f.currentMonthSpent,
+                      child: _miniCol('Bu ana dek', f.currentMonthSpent,
                           padLeft: true)),
                 ],
               ),
@@ -221,23 +219,13 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
 
   Widget _miniCol(String label, double value, {bool padLeft = false}) {
     return Padding(
-      padding: EdgeInsets.only(left: padLeft ? 18 : 0),
+      padding: EdgeInsets.only(left: padLeft ? 18 : 0, right: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label,
-              style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: 0.4,
-                  color: AppColors.outline)),
-          const SizedBox(height: 5),
-          Text(money(value),
-              style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.onSurface,
-                  fontFeatures: kTnum)),
+          Eyebrow(label, size: 10, color: _panelMuted),
+          const SizedBox(height: 8),
+          Text(money(value), style: AppText.mono(size: 16, color: _panelInk)),
         ],
       ),
     );
@@ -256,130 +244,129 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
     final all = [...solid, f.nextMonthPrediction];
     final maxV = all.reduce((a, b) => a > b ? a : b) * 1.12;
     final minV = all.reduce((a, b) => a < b ? a : b) * 0.85;
+    final forecastColor = AppColors.info;
 
-    final solidSpots = [
-      for (var i = 0; i < solid.length; i++) FlSpot(i.toDouble(), solid[i])
-    ];
-    final dashedSpots = [
-      FlSpot(lastIdx.toDouble(), solid[lastIdx]),
-      FlSpot((lastIdx + 1).toDouble(), f.nextMonthPrediction),
-    ];
-
-    return _card(
+    return GlassCard(
       padding: const EdgeInsets.fromLTRB(20, 22, 20, 18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text('Harcama Trendi',
-                  style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.onSurface)),
-              Text('Geçmiş + tahmin',
-                  style: TextStyle(fontSize: 11.5, color: AppColors.outline)),
-            ],
-          ),
-          const SizedBox(height: 16),
+          _title('Harcama trendi',
+              trailing: const Eyebrow('Geçmiş + tahmin', size: 10)),
+          const SizedBox(height: 18),
           SizedBox(
-            height: 150,
-            child: LineChart(
-              LineChartData(
-                minY: minV,
-                maxY: maxV,
-                gridData: FlGridData(
-                  show: true,
-                  drawVerticalLine: false,
-                  horizontalInterval: (maxV - minV) / 2,
-                  getDrawingHorizontalLine: (_) =>
-                      FlLine(color: AppColors.glassBorder, strokeWidth: 1),
-                ),
-                titlesData: FlTitlesData(
-                  leftTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false)),
-                  topTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false)),
-                  rightTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false)),
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      interval: 1,
-                      getTitlesWidget: (v, _) {
-                        final i = v.toInt();
-                        if (i < 0 || i >= labels.length) {
-                          return const SizedBox.shrink();
-                        }
-                        final isForecast = i == labels.length - 1;
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 6),
-                          child: Text(labels[i],
-                              style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: isForecast
-                                      ? FontWeight.w700
-                                      : FontWeight.w500,
-                                  color: isForecast
-                                      ? _forecastColor
-                                      : AppColors.outline)),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-                borderData: FlBorderData(show: false),
-                lineTouchData: const LineTouchData(enabled: false),
-                lineBarsData: [
-                  // Gerçekleşen (düz)
-                  LineChartBarData(
-                    spots: solidSpots,
-                    isCurved: true,
-                    color: AppColors.onSurface,
-                    barWidth: 2.5,
-                    dotData: FlDotData(
+            height: 160,
+            // Çizgiler açılışta tabandan yükselir.
+            child: TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0, end: 1),
+              duration: AppMotion.slow,
+              curve: AppMotion.curve,
+              builder: (context, t, _) {
+                double y(double v) => minV + (v - minV) * t;
+                final solidSpots = [
+                  for (var i = 0; i < solid.length; i++)
+                    FlSpot(i.toDouble(), y(solid[i]))
+                ];
+                final dashedSpots = [
+                  FlSpot(lastIdx.toDouble(), y(solid[lastIdx])),
+                  FlSpot((lastIdx + 1).toDouble(), y(f.nextMonthPrediction)),
+                ];
+                return LineChart(
+                  duration: Duration.zero,
+                  LineChartData(
+                    minY: minV,
+                    maxY: maxV,
+                    gridData: FlGridData(
                       show: true,
-                      checkToShowDot: (s, _) => s.x.toInt() == lastIdx,
-                      getDotPainter: (s, p, b, i) => FlDotCirclePainter(
-                          radius: 4,
-                          color: AppColors.onSurface,
-                          strokeWidth: 0),
+                      drawVerticalLine: false,
+                      horizontalInterval: (maxV - minV) / 2,
+                      getDrawingHorizontalLine: (_) =>
+                          FlLine(color: AppColors.glassBorder, strokeWidth: 1),
                     ),
-                    belowBarData: BarAreaData(
-                      show: true,
-                      color: AppColors.onSurface.withValues(alpha: 0.10),
+                    titlesData: FlTitlesData(
+                      leftTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false)),
+                      topTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false)),
+                      rightTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false)),
+                      bottomTitles: AxisTitles(
+                        sideTitles: SideTitles(
+                          showTitles: true,
+                          interval: 1,
+                          reservedSize: 28,
+                          getTitlesWidget: (v, _) {
+                            final i = v.toInt();
+                            if (i < 0 || i >= labels.length) {
+                              return const SizedBox.shrink();
+                            }
+                            final isForecast = i == labels.length - 1;
+                            return Padding(
+                              padding: const EdgeInsets.only(top: 8),
+                              child: Text(trUpper(labels[i]),
+                                  style: AppText.label(
+                                      size: 10,
+                                      color: isForecast
+                                          ? forecastColor
+                                          : AppColors.onSurfaceVariant)),
+                            );
+                          },
+                        ),
+                      ),
                     ),
+                    borderData: FlBorderData(show: false),
+                    lineTouchData: const LineTouchData(enabled: false),
+                    lineBarsData: [
+                      // Gerçekleşen (düz)
+                      LineChartBarData(
+                        spots: solidSpots,
+                        isCurved: true,
+                        color: AppColors.onSurface,
+                        barWidth: 2,
+                        dotData: FlDotData(
+                          show: true,
+                          checkToShowDot: (s, _) => s.x.toInt() == lastIdx,
+                          getDotPainter: (s, p, b, i) => FlDotCirclePainter(
+                              radius: 4,
+                              color: AppColors.onSurface,
+                              strokeWidth: 2,
+                              strokeColor: AppColors.surface),
+                        ),
+                        belowBarData: BarAreaData(
+                          show: true,
+                          color: AppColors.onSurface.withValues(alpha: 0.06),
+                        ),
+                      ),
+                      // Tahmin (kesikli)
+                      LineChartBarData(
+                        spots: dashedSpots,
+                        isCurved: false,
+                        color: forecastColor,
+                        barWidth: 2,
+                        dashArray: [5, 5],
+                        dotData: FlDotData(
+                          show: true,
+                          checkToShowDot: (s, _) => s.x.toInt() == lastIdx + 1,
+                          getDotPainter: (s, p, b, i) => FlDotCirclePainter(
+                              radius: 5,
+                              color: AppColors.surface,
+                              strokeColor: forecastColor,
+                              strokeWidth: 2),
+                        ),
+                      ),
+                    ],
                   ),
-                  // Tahmin (kesikli)
-                  LineChartBarData(
-                    spots: dashedSpots,
-                    isCurved: false,
-                    color: _forecastColor,
-                    barWidth: 2.5,
-                    dashArray: [5, 5],
-                    dotData: FlDotData(
-                      show: true,
-                      checkToShowDot: (s, _) => s.x.toInt() == lastIdx + 1,
-                      getDotPainter: (s, p, b, i) => FlDotCirclePainter(
-                          radius: 5,
-                          color: AppColors.background,
-                          strokeColor: _forecastColor,
-                          strokeWidth: 2.5),
-                    ),
-                  ),
-                ],
-              ),
+                );
+              },
             ),
           ),
           const SizedBox(height: 14),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _legend(AppColors.onSurface, 'Gerçekleşen', dashed: false),
-              const SizedBox(width: 18),
-              _legend(_forecastColor, 'Tahmin', dashed: true),
+              _legend(AppColors.onSurface, 'Gerçekleşen'),
+              const SizedBox(width: 20),
+              _legend(forecastColor, 'Tahmin'),
             ],
           ),
         ],
@@ -387,16 +374,17 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
     );
   }
 
-  Widget _legend(Color c, String label, {required bool dashed}) {
+  Widget _legend(Color c, String label) {
     return Row(
       children: [
-        Container(width: 16, height: dashed ? 0 : 3,
-            decoration: dashed
-                ? BoxDecoration(border: Border(top: BorderSide(color: c, width: 2.5, style: BorderStyle.solid)))
-                : BoxDecoration(color: c, borderRadius: BorderRadius.circular(2))),
-        const SizedBox(width: 7),
+        Container(
+            width: 16,
+            height: 3,
+            decoration: BoxDecoration(
+                color: c, borderRadius: BorderRadius.circular(2))),
+        const SizedBox(width: 8),
         Text(label,
-            style: TextStyle(fontSize: 11.5, color: AppColors.outline)),
+            style: TextStyle(fontSize: 14, color: AppColors.onSurfaceVariant)),
       ],
     );
   }
@@ -411,71 +399,100 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
       'Yüksek' => 2,
       _ => 1,
     };
-    final segColors = [_okColor, AppColors.warn, AppColors.error, AppColors.surfaceContainerHigh];
+    final segColors = [
+      AppColors.positive,
+      AppColors.warn,
+      AppColors.error,
+      AppColors.surfaceContainerHigh
+    ];
     final labelColor = switch (f.velocity) {
-      'Düşük' => _okColor,
+      'Düşük' => AppColors.positive,
       'Yüksek' => AppColors.error,
       _ => AppColors.warn,
     };
-    return _card(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-      child: Row(
+    return GlassCard(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-                color: labelColor.withValues(alpha: 0.14),
-                borderRadius: BorderRadius.circular(14)),
-            child: Icon(Icons.bolt, color: labelColor, size: 24),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Harcama Hızı: ${f.velocity}',
-                    style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.onSurface)),
-                const SizedBox(height: 3),
-                Text('Günlük ort. ${money(dailyAvg)}',
-                    style: TextStyle(fontSize: 12.5, color: AppColors.outline)),
-                const SizedBox(height: 10),
-                Row(
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                    color: labelColor.withValues(alpha: 0.12),
+                    shape: BoxShape.circle),
+                child: Icon(Icons.bolt, color: labelColor, size: 22),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    for (var i = 0; i < 4; i++) ...[
-                      Expanded(
+                    const Eyebrow('Harcama hızı', size: 11),
+                    const SizedBox(height: 4),
+                    Text(f.velocity,
+                        style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w400,
+                            color: AppColors.onSurface)),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  const Eyebrow('Günlük ort.', size: 10),
+                  const SizedBox(height: 6),
+                  Text(money(dailyAvg), style: AppText.mono(size: 15)),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              for (var i = 0; i < 4; i++) ...[
+                Expanded(
+                  child: TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0, end: 1),
+                    duration: Duration(milliseconds: 400 + i * 120),
+                    curve: AppMotion.curve,
+                    builder: (context, t, _) => Opacity(
+                      opacity: i == activeIdx ? 1 : 0.35,
+                      child: Transform.scale(
+                        scaleX: t,
+                        alignment: Alignment.centerLeft,
                         child: Container(
-                          height: 5,
+                          height: i == activeIdx ? 8 : 6,
                           decoration: BoxDecoration(
                               color: segColors[i],
-                              borderRadius: BorderRadius.circular(3)),
+                              borderRadius:
+                                  BorderRadius.circular(AppRadius.pill)),
                         ),
                       ),
-                      if (i < 3) const SizedBox(width: 4),
-                    ],
-                  ],
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 6),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    for (final e in ['Düşük', 'Normal', 'Yüksek', 'Aşırı'].asMap().entries)
-                      Text(e.value,
-                          style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: e.key == activeIdx
-                                  ? FontWeight.w700
-                                  : FontWeight.w400,
-                              color: e.key == activeIdx
-                                  ? labelColor
-                                  : AppColors.outline)),
-                  ],
-                ),
+                if (i < 3) const SizedBox(width: 4),
               ],
-            ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              for (final e in ['Düşük', 'Normal', 'Yüksek', 'Aşırı'].asMap().entries)
+                Text(e.value,
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight:
+                            e.key == activeIdx ? FontWeight.w500 : FontWeight.w400,
+                        color: e.key == activeIdx
+                            ? labelColor
+                            : AppColors.onSurfaceVariant)),
+            ],
           ),
         ],
       ),
@@ -487,105 +504,114 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('Olağandışı Harcamalar',
-                style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.onSurface)),
-            if (anomalies.isNotEmpty)
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-                decoration: BoxDecoration(
-                    color: AppColors.error.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(99)),
-                child: Text('${anomalies.length} uyarı',
-                    style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.error)),
-              ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        if (anomalies.isEmpty)
-          _card(
-            child: Text('Olağandışı harcama tespit edilmedi 👍',
-                style: TextStyle(color: AppColors.onSurfaceVariant)),
-          )
-        else
-          ...anomalies.map((a) {
-            final high = a.severity == 'high';
-            final col = high ? AppColors.error : AppColors.warn;
-            final cc = categoryColor(a.category);
-            return Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              padding: const EdgeInsets.fromLTRB(16, 15, 16, 15),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.glassBorder),
-                gradient: null,
-              ),
-              child: Row(
-                children: [
-                  Container(width: 3, height: 40, color: col),
-                  const SizedBox(width: 13),
-                  Container(
-                    width: 38,
-                    height: 38,
+        _title('Olağandışı harcamalar',
+            trailing: anomalies.isEmpty
+                ? null
+                : Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                        color: cc.withValues(alpha: 0.14),
-                        borderRadius: BorderRadius.circular(11)),
-                    child: Icon(categoryIcon(a.category), size: 18, color: cc),
-                  ),
-                  const SizedBox(width: 13),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                        color: AppColors.errorSoft,
+                        borderRadius: BorderRadius.circular(AppRadius.pill)),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(a.note.isEmpty ? 'Olağandışı ${a.category}' : a.note,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                        PingDot(color: AppColors.error, size: 6),
+                        const SizedBox(width: 8),
+                        Text('${anomalies.length} uyarı',
                             style: TextStyle(
-                                fontSize: 13.5,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.onSurface)),
-                        const SizedBox(height: 2),
-                        Text(a.reason,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                                fontSize: 12, color: AppColors.outline)),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.error)),
                       ],
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text('−${money(a.amount)}',
-                          style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.onSurface,
-                              fontFeatures: kTnum)),
-                      const SizedBox(height: 2),
-                      Text(high ? 'YÜKSEK' : 'ORTA',
-                          style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              color: col)),
-                    ],
-                  ),
-                ],
-              ),
-            );
-          }),
+                  )),
+        const SizedBox(height: 8),
+        Text('Bir harcama alışkanlığından belirgin biçimde büyükse işaretlenir.',
+            style: TextStyle(fontSize: 15, color: AppColors.onSurfaceVariant)),
+        const SizedBox(height: 16),
+        if (anomalies.isEmpty)
+          GlassCard(
+            child: Row(
+              children: [
+                Icon(Icons.check_circle_outline,
+                    size: 20, color: AppColors.positive),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text('Olağandışı harcama yok.',
+                      style: TextStyle(
+                          fontSize: 16, color: AppColors.onSurfaceVariant)),
+                ),
+              ],
+            ),
+          )
+        else
+          GlassCard(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
+            child: Column(
+              children: [
+                for (var i = 0; i < anomalies.length; i++)
+                  _anomalyRow(anomalies[i], i < anomalies.length - 1),
+              ],
+            ),
+          ),
       ],
+    );
+  }
+
+  Widget _anomalyRow(AnomalyModel a, bool border) {
+    final high = a.severity == 'high';
+    final col = high ? AppColors.error : AppColors.warn;
+    final cc = categoryColor(a.category);
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      decoration: BoxDecoration(
+        border: border
+            ? Border(bottom: BorderSide(color: AppColors.glassBorder))
+            : null,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+                color: cc.withValues(alpha: 0.12), shape: BoxShape.circle),
+            child: Icon(categoryIcon(a.category), size: 17, color: cc),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(a.note.isEmpty ? 'Olağandışı ${a.category}' : a.note,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.onSurface)),
+                const SizedBox(height: 3),
+                Text(a.reason,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontSize: 14, color: AppColors.onSurfaceVariant)),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text('−${money(a.amount)}', style: AppText.mono(size: 14)),
+              const SizedBox(height: 4),
+              Eyebrow(high ? 'Yüksek' : 'Orta', size: 10, color: col),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -600,67 +626,58 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
     final list = top.take(5).toList();
     final max = list.isEmpty ? 1.0 : list.first.value;
 
-    return _card(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('En Çok Harcanan Kategoriler',
-              style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.onSurface)),
-          const SizedBox(height: 18),
-          if (list.isEmpty)
-            Text('Veri yok', style: TextStyle(color: AppColors.onSurfaceVariant))
-          else
-            for (final e in list) ...[
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _title('En çok harcanan kategoriler'),
+        const SizedBox(height: 16),
+        GlassCard(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 4),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (list.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Text('Veri yok',
+                      style: TextStyle(
+                          fontSize: 16, color: AppColors.onSurfaceVariant)),
+                )
+              else
+                for (final e in list) ...[
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Container(
-                        width: 9,
-                        height: 9,
-                        decoration: BoxDecoration(
-                            color: categoryColor(e.key),
-                            borderRadius: BorderRadius.circular(3)),
+                      Row(
+                        children: [
+                          Container(
+                            width: 9,
+                            height: 9,
+                            decoration: BoxDecoration(
+                                color: categoryColor(e.key),
+                                borderRadius: BorderRadius.circular(3)),
+                          ),
+                          const SizedBox(width: 10),
+                          Text(e.key,
+                              style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                  color: AppColors.onSurface)),
+                        ],
                       ),
-                      const SizedBox(width: 9),
-                      Text(e.key,
-                          style: TextStyle(
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w500,
-                              color: AppColors.onSurface)),
+                      Text(money(e.value), style: AppText.mono(size: 14)),
                     ],
                   ),
-                  Text(money(e.value),
-                      style: TextStyle(
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.onSurface,
-                          fontFeatures: kTnum)),
+                  const SizedBox(height: 10),
+                  ExBar(
+                      value: max == 0 ? 0 : e.value / max,
+                      color: categoryColor(e.key)),
+                  const SizedBox(height: 18),
                 ],
-              ),
-              const SizedBox(height: 8),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: TweenAnimationBuilder<double>(
-                  tween: Tween(begin: 0, end: max == 0 ? 0 : e.value / max),
-                  duration: const Duration(milliseconds: 800),
-                  curve: Curves.easeOutCubic,
-                  builder: (context, v, _) => LinearProgressIndicator(
-                    value: v,
-                    minHeight: 7,
-                    backgroundColor: AppColors.surfaceContainer,
-                    color: categoryColor(e.key),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
             ],
-        ],
-      ),
+          ),
+        ),
+      ],
     );
   }
 }

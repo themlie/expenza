@@ -535,6 +535,75 @@ class CountUp extends StatelessWidget {
   }
 }
 
+/// Etrafına dalga yayan küçük nokta: canlı durum ya da bekleyen uyarı için.
+class PingDot extends StatefulWidget {
+  final Color color;
+  final double size;
+  const PingDot({super.key, required this.color, this.size = 7});
+
+  @override
+  State<PingDot> createState() => _PingDotState();
+}
+
+class _PingDotState extends State<PingDot> with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 1800));
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final reduce = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    if (reduce) {
+      _c.stop();
+    } else if (!_c.isAnimating) {
+      _c.repeat();
+    }
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = widget.size;
+    return SizedBox(
+      width: s,
+      height: s,
+      child: AnimatedBuilder(
+        animation: _c,
+        builder: (context, _) {
+          final t = Curves.easeOut.transform(_c.value);
+          return Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.center,
+            children: [
+              Transform.scale(
+                scale: 1 + t * 1.8,
+                child: Container(
+                  width: s,
+                  height: s,
+                  decoration: BoxDecoration(
+                      color: widget.color.withValues(alpha: 0.55 * (1 - t)),
+                      shape: BoxShape.circle),
+                ),
+              ),
+              Container(
+                width: s,
+                height: s,
+                decoration:
+                    BoxDecoration(color: widget.color, shape: BoxShape.circle),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
 /// Fiş düzenindeki noktalı çizgi: soldaki metni sağdaki tutara bağlar.
 class DottedLeader extends StatelessWidget {
   final Color? color;
