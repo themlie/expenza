@@ -300,7 +300,8 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.surfaceBright,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+        // contentPadding bilinçli olarak verilmedi: tema düzeyinde verilirse
+        // isCollapsed alanlar da bu boşluğu alır ve kutular uzar.
         hintStyle: TextStyle(color: AppColors.outline),
         labelStyle: TextStyle(color: AppColors.onSurfaceVariant),
         border: OutlineInputBorder(

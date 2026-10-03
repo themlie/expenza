@@ -516,13 +516,16 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               ),
             ),
           ),
-          Row(
-            children: [
-              _segTab('Gider', Icons.south, !_isIncome,
-                  () => _setType('expense')),
-              _segTab('Gelir', Icons.north, _isIncome,
-                  () => _setType('income')),
-            ],
+          // Sekmeler segmentin tüm yüksekliğini kaplar; yazılar dikeyde ortalanır.
+          Positioned.fill(
+            child: Row(
+              children: [
+                _segTab('Gider', Icons.south, !_isIncome,
+                    () => _setType('expense')),
+                _segTab('Gelir', Icons.north, _isIncome,
+                    () => _setType('income')),
+              ],
+            ),
           ),
         ],
       ),
@@ -536,15 +539,21 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       child: GestureDetector(
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 16, color: color),
-            const SizedBox(width: 7),
-            Text(label,
-                style: TextStyle(
-                    fontSize: 15, fontWeight: FontWeight.w500, color: color)),
-          ],
+        child: Center(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Icon(icon, size: 16, color: color),
+              const SizedBox(width: 7),
+              Text(label,
+                  style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      height: 1.0,
+                      color: color)),
+            ],
+          ),
         ),
       ),
     );
