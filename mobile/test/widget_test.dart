@@ -1,10 +1,29 @@
-// Giriş ekranı widget testleri.
+// Açılış ve giriş ekranı widget testleri.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:expenza_mobile/api_client.dart';
 import 'package:expenza_mobile/main.dart';
 
 void main() {
+  // Testlerde kayıtlı oturum aranmaz; doğrudan giriş ekranı açılır.
+  setUp(() => ApiClient.instance.restoring.value = false);
+
+  testWidgets('Oturum geri yüklenirken açılış ekranı görünür',
+      (WidgetTester tester) async {
+    ApiClient.instance.restoring.value = true;
+    await tester.pumpWidget(const ExpenzaApp());
+    await tester.pump();
+
+    expect(find.text('Expenza'), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.byType(TextField), findsNothing);
+
+    ApiClient.instance.restoring.value = false;
+    await tester.pumpAndSettle();
+    expect(find.byType(TextField), findsNWidgets(2));
+  });
+
   testWidgets('Açılışta giriş ekranı görünür', (WidgetTester tester) async {
     await tester.pumpWidget(const ExpenzaApp());
     await tester.pumpAndSettle();

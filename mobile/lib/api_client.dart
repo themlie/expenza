@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
 import 'models.dart';
@@ -12,15 +14,34 @@ import 'models.dart';
 /// Verilmezse geliştirme adresleri kullanılır:
 /// - Android emülatör: 10.0.2.2 (host makineye köprü)
 /// - Web/masaüstü/iOS sim: localhost
+///
+/// Oturum: girişte kısa ömürlü bir erişim token'ı (30 dk) ve uzun ömürlü bir yenileme
+/// token'ı (30 gün) gelir. Erişim token'ı yalnızca bellekte tutulur. "Beni hatırla"
+/// seçiliyse yenileme token'ı cihazın güvenli deposuna yazılır (Android Keystore, iOS
+/// Keychain, web'de WebCrypto ile şifrelenmiş localStorage) ve uygulama açılınca
+/// [restoreSession] oturumu bununla geri yükler. Bir istek 401 alırsa token bir kez
+/// yenilenip istek tekrarlanır.
 class ApiClient {
   ApiClient._();
   static final ApiClient instance = ApiClient._();
 
   String? _token;
+  String? _refreshToken;
+  bool _remember = true;
+  // Aynı anda 401 alan istekler tek bir yenileme isteğini bekler. Yenileme token'ı her
+  // kullanımda değiştiği için iki paralel yenileme oturumu düşürürdü.
+  Future<bool>? _refreshing;
+
+  static const _storage = FlutterSecureStorage();
+  static const _refreshKey = 'expenza.refresh_token';
+
   bool get isLoggedIn => _token != null;
 
-  /// Oturum durumu: girişte true; çıkışta ya da sunucu token'ı reddedince (401) false.
+  /// Oturum durumu: girişte true; çıkışta ya da oturum yenilenemeyince false.
   final ValueNotifier<bool> session = ValueNotifier(false);
+
+  /// Açılışta kayıtlı oturum kontrol edilirken true (açılış ekranı gösterilir).
+  final ValueNotifier<bool> restoring = ValueNotifier(true);
 
   /// Oturum sunucu tarafından düşürüldüyse giriş ekranında gösterilecek mesaj.
   String? sessionEndedReason;
@@ -46,16 +67,122 @@ class ApiClient {
     return 'http://localhost:$port';
   }
 
+  static const _jsonHeaders = {'Content-Type': 'application/json'};
+
   Map<String, String> get _headers => {
-        'Content-Type': 'application/json',
+        ..._jsonHeaders,
         if (_token != null) 'Authorization': 'Bearer $_token',
       };
 
-  Uri _u(String path) => Uri.parse('$baseUrl$path');
+  Uri _u(String path, [Map<String, String>? query]) {
+    final uri = Uri.parse('$baseUrl$path');
+    return query == null || query.isEmpty ? uri : uri.replace(queryParameters: query);
+  }
+
+  /// İsteği gönderir; 401 gelirse token'ı bir kez yenileyip tekrar dener.
+  Future<http.Response> _send(String method, String path,
+      {Object? body, Map<String, String>? query}) async {
+    final encoded = body == null ? null : jsonEncode(body);
+    Future<http.Response> go() {
+      final uri = _u(path, query);
+      switch (method) {
+        case 'GET':
+          return http.get(uri, headers: _headers);
+        case 'POST':
+          return http.post(uri, headers: _headers, body: encoded);
+        case 'PUT':
+          return http.put(uri, headers: _headers, body: encoded);
+        default:
+          return http.delete(uri, headers: _headers, body: encoded);
+      }
+    }
+
+    final usedToken = _token;
+    var r = await go();
+    if (r.statusCode == 401 && _refreshToken != null) {
+      // Başka bir istek token'ı bu arada yenilediyse doğrudan tekrar dene.
+      if (_token != usedToken || await _refresh()) r = await go();
+    }
+    if (r.statusCode >= 400) throw _err(r);
+    return r;
+  }
+
+  Future<dynamic> _json(String method, String path,
+      {Object? body, Map<String, String>? query}) async {
+    final r = await _send(method, path, body: body, query: query);
+    return r.body.isEmpty ? null : jsonDecode(r.body);
+  }
+
+  // ---- Oturum ----
+
+  Future<bool> _refresh() =>
+      _refreshing ??= _doRefresh().whenComplete(() => _refreshing = null);
+
+  Future<bool> _doRefresh() async {
+    final refreshToken = _refreshToken;
+    if (refreshToken == null) return false;
+    final r = await http.post(_u('/auth/refresh'),
+        headers: _jsonHeaders,
+        body: jsonEncode({'refresh_token': refreshToken}));
+    if (r.statusCode != 200) {
+      // 401: token geçersiz ya da iptal edilmiş; bir daha denenmez.
+      if (r.statusCode == 401) await _forgetTokens();
+      return false;
+    }
+    await _storeTokens(jsonDecode(r.body));
+    return true;
+  }
+
+  Future<void> _storeTokens(Map<String, dynamic> j) async {
+    _token = j['access_token'] as String;
+    _refreshToken = j['refresh_token'] as String?;
+    if (_remember && _refreshToken != null) {
+      try {
+        await _storage.write(key: _refreshKey, value: _refreshToken);
+      } catch (_) {
+        // Güvenli depo yoksa (ör. web'de HTTPS olmayan bir adres) oturum yalnızca
+        // uygulama açık kaldığı sürece devam eder.
+      }
+    }
+  }
+
+  Future<void> _forgetTokens() async {
+    _token = null;
+    _refreshToken = null;
+    try {
+      await _storage.delete(key: _refreshKey);
+    } catch (_) {}
+  }
+
+  void _endSession(String? reason) {
+    sessionEndedReason = reason;
+    _token = null;
+    session.value = false;
+  }
+
+  /// Uygulama açılışında kayıtlı oturumu geri yükler. Kayıtlı token yoksa, geçersizse
+  /// ya da sunucuya ulaşılamazsa giriş ekranı gösterilir.
+  Future<void> restoreSession() async {
+    try {
+      final saved = await _storage.read(key: _refreshKey);
+      if (saved != null) {
+        _refreshToken = saved;
+        _remember = true;
+        if (await _refresh().timeout(const Duration(seconds: 8))) {
+          session.value = true;
+        }
+      }
+    } catch (_) {
+      // Depo okunamadı ya da sunucu cevap vermedi. Token silinmez; sunucuya
+      // ulaşılabildiğinde bir sonraki açılışta oturum geri gelir.
+    } finally {
+      restoring.value = false;
+    }
+  }
 
   Future<void> register(String email, String password, String name) async {
     final r = await http.post(_u('/auth/register'),
-        headers: _headers,
+        headers: _jsonHeaders,
         body: jsonEncode(
             {'email': email, 'password': password, 'display_name': name}));
     if (r.statusCode >= 400) {
@@ -63,7 +190,8 @@ class ApiClient {
     }
   }
 
-  Future<void> login(String email, String password) async {
+  /// [remember] false ise oturum cihaza kaydedilmez; uygulama kapanınca biter.
+  Future<void> login(String email, String password, {bool remember = true}) async {
     // OAuth2 password flow form-encoded bekler.
     final r = await http.post(
       _u('/auth/login'),
@@ -71,51 +199,102 @@ class ApiClient {
       body: {'username': email, 'password': password},
     );
     if (r.statusCode >= 400) throw _err(r);
-    _token = jsonDecode(r.body)['access_token'];
+    _remember = remember;
+    if (!remember) await _forgetTokens();
+    await _storeTokens(jsonDecode(r.body));
     sessionEndedReason = null;
     session.value = true;
   }
 
-  void logout() {
-    _token = null;
-    session.value = false;
+  /// Çıkış: bu cihazdaki oturumu sunucuda kapatır ve kayıtlı token'ı siler.
+  Future<void> logout() async {
+    final refreshToken = _refreshToken;
+    _endSession(null);
+    await _forgetTokens();
+    if (refreshToken != null) {
+      try {
+        await http.post(_u('/auth/logout'),
+            headers: _jsonHeaders,
+            body: jsonEncode({'refresh_token': refreshToken}));
+      } catch (_) {
+        // Sunucuya ulaşılamadıysa token süresi dolunca zaten geçersiz olur.
+      }
+    }
   }
 
+  // ---- Hesap ----
+
   Future<({String email, String displayName})> getMe() async {
-    final r = await http.get(_u('/auth/me'), headers: _headers);
-    if (r.statusCode >= 400) throw _err(r);
-    final j = jsonDecode(r.body);
+    final j = await _json('GET', '/auth/me');
     return (email: j['email'] as String, displayName: j['display_name'] as String);
   }
 
+  /// Profil bilgileri (üyelik tarihi, uyarı tercihi, yapay zekâ onayı dahil).
+  Future<UserModel> getProfile() async =>
+      UserModel.fromJson(await _json('GET', '/auth/me'));
+
+  /// Yalnızca verilen alanlar güncellenir.
+  Future<UserModel> updateProfile({String? displayName, bool? alertsEnabled}) async {
+    final body = <String, dynamic>{};
+    if (displayName != null) body['display_name'] = displayName;
+    if (alertsEnabled != null) body['alerts_enabled'] = alertsEnabled;
+    return UserModel.fromJson(await _json('PUT', '/auth/me', body: body));
+  }
+
+  /// Parolayı değiştirir. Diğer cihazlardaki oturumlar kapanır, bu cihaz devam eder.
+  /// Mevcut parola yanlışsa "Mevcut parola hatalı" hatası fırlatır.
+  Future<void> changePassword(String currentPassword, String newPassword) async {
+    final j = await _json('POST', '/auth/change-password', body: {
+      'current_password': currentPassword,
+      'new_password': newPassword,
+    });
+    await _storeTokens(j);
+  }
+
+  /// Hesabı ve bütün verileri kalıcı olarak siler; ardından giriş ekranına dönülür.
+  Future<void> deleteAccount(String password) async {
+    await _send('DELETE', '/auth/me', body: {'password': password});
+    await _forgetTokens();
+    _endSession('Hesabın ve bütün verilerin silindi.');
+  }
+
+  // ---- İşlemler ----
+
+  /// [offset] ile sayfalama: ilk sayfa 0, sonraki sayfa [limit] kadar ileri.
+  /// Dönen liste [limit]'ten kısaysa başka kayıt yoktur.
   Future<List<TransactionModel>> getTransactions({
     String? category,
     String? type,
     String? month,
     String? q,
     int limit = 200,
+    int offset = 0,
   }) async {
     final params = <String, String>{'limit': '$limit'};
+    if (offset > 0) params['offset'] = '$offset';
     if (category != null) params['category'] = category;
     if (type != null) params['type'] = type;
     if (month != null) params['month'] = month;
     if (q != null && q.isNotEmpty) params['q'] = q;
-    final uri = Uri.parse('$baseUrl/transactions').replace(queryParameters: params);
-    final r = await http.get(uri, headers: _headers);
-    if (r.statusCode >= 400) throw _err(r);
-    return (jsonDecode(r.body) as List)
-        .map((e) => TransactionModel.fromJson(e))
-        .toList();
+    final list = await _json('GET', '/transactions', query: params) as List;
+    return list.map((e) => TransactionModel.fromJson(e)).toList();
   }
 
-  /// Bakiye ve toplamlar (tüm işlemler) ile bu ayın kategori dağılımı.
-  Future<SummaryModel> getSummary() async {
-    final r = await http.get(_u('/transactions/summary'), headers: _headers);
-    if (r.statusCode >= 400) throw _err(r);
-    return SummaryModel.fromJson(jsonDecode(r.body));
+  /// İşlem olan aylar (yeniden eskiye) ve her ayın gelir/gider toplamı.
+  Future<List<MonthSummaryModel>> getTransactionMonths() async {
+    final list = await _json('GET', '/transactions/months') as List;
+    return list.map((e) => MonthSummaryModel.fromJson(e)).toList();
   }
 
-  Future<void> updateTransaction(
+  /// Bakiye ve toplamlar (tüm işlemler) ile bir ayın kategori dağılımı.
+  /// [month] "YYYY-MM"; verilmezse içinde bulunulan ay.
+  Future<SummaryModel> getSummary({String? month}) async {
+    return SummaryModel.fromJson(await _json('GET', '/transactions/summary',
+        query: month == null ? null : {'month': month}));
+  }
+
+  /// Dönen işlemin [TransactionModel.budgetAlerts] alanı bütçe uyarılarını taşır.
+  Future<TransactionModel> updateTransaction(
     int id, {
     double? amount,
     String? type,
@@ -131,11 +310,12 @@ class ApiClient {
     if (note != null) body['note'] = note;
     if (occurredOn != null) body['occurred_on'] = occurredOn;
     if (isRecurring != null) body['is_recurring'] = isRecurring;
-    final r = await http.put(_u('/transactions/$id'),
-        headers: _headers, body: jsonEncode(body));
-    if (r.statusCode >= 400) throw _err(r);
+    return TransactionModel.fromJson(
+        await _json('PUT', '/transactions/$id', body: body));
   }
 
+  /// [occurredOn] "YYYY-MM-DD"; verilmezse bugün. Dönen işlemin
+  /// [TransactionModel.budgetAlerts] alanı bütçe uyarılarını taşır.
   Future<TransactionModel> addTransaction({
     required double amount,
     required String type,
@@ -160,128 +340,141 @@ class ApiClient {
       body['suggestion_confidence'] = shownSuggestion.confidence;
       body['suggestion_model'] = shownSuggestion.model;
     }
-    final r = await http.post(_u('/transactions'),
-        headers: _headers, body: jsonEncode(body));
-    if (r.statusCode >= 400) throw _err(r);
-    return TransactionModel.fromJson(jsonDecode(r.body));
+    return TransactionModel.fromJson(
+        await _json('POST', '/transactions', body: body));
   }
 
   Future<void> deleteTransaction(int id) async {
-    final r = await http.delete(_u('/transactions/$id'), headers: _headers);
-    if (r.statusCode >= 400) throw _err(r);
+    await _send('DELETE', '/transactions/$id');
   }
 
+  /// İşlem kategorileri (backend'deki liste; "Toplam" dahil değil).
+  Future<List<String>> getCategories() async {
+    final list = await _json('GET', '/categories') as List;
+    return list.cast<String>();
+  }
+
+  // ---- Bütçeler ----
+
   Future<List<BudgetModel>> getBudgets() async {
-    final r = await http.get(_u('/budgets'), headers: _headers);
-    if (r.statusCode >= 400) throw _err(r);
-    return (jsonDecode(r.body) as List)
-        .map((e) => BudgetModel.fromJson(e))
-        .toList();
+    final list = await _json('GET', '/budgets') as List;
+    return list.map((e) => BudgetModel.fromJson(e)).toList();
   }
 
   Future<BudgetModel> upsertBudget(String category, double limit) async {
-    final r = await http.post(_u('/budgets'),
-        headers: _headers,
-        body: jsonEncode({'category': category, 'monthly_limit': limit}));
-    if (r.statusCode >= 400) throw _err(r);
-    return BudgetModel.fromJson(jsonDecode(r.body));
+    return BudgetModel.fromJson(await _json('POST', '/budgets',
+        body: {'category': category, 'monthly_limit': limit}));
   }
 
   Future<void> deleteBudget(int id) async {
-    final r = await http.delete(_u('/budgets/$id'), headers: _headers);
-    if (r.statusCode >= 400) throw _err(r);
+    await _send('DELETE', '/budgets/$id');
   }
 
-  Future<ForecastModel> getForecast() async {
-    final r = await http.get(_u('/analytics/forecast'), headers: _headers);
-    if (r.statusCode >= 400) throw _err(r);
-    return ForecastModel.fromJson(jsonDecode(r.body));
+  // ---- Uyarılar ----
+
+  /// O anki uyarılar, önemliden önemsize. Bildirimler kapalıysa boş liste.
+  Future<List<AlertModel>> getAlerts() async {
+    final list = await _json('GET', '/alerts') as List;
+    return list.map((e) => AlertModel.fromJson(e)).toList();
   }
+
+  /// Uyarıyı kapatır; aynı uyarı bir daha gösterilmez.
+  Future<void> dismissAlert(String id) async {
+    await _send('POST', '/alerts/dismiss', body: {'id': id});
+  }
+
+  // ---- Analitik ----
+
+  Future<ForecastModel> getForecast() async =>
+      ForecastModel.fromJson(await _json('GET', '/analytics/forecast'));
 
   Future<List<AnomalyModel>> getAnomalies() async {
-    final r = await http.get(_u('/analytics/anomalies'), headers: _headers);
-    if (r.statusCode >= 400) throw _err(r);
-    return (jsonDecode(r.body) as List)
-        .map((e) => AnomalyModel.fromJson(e))
-        .toList();
+    final list = await _json('GET', '/analytics/anomalies') as List;
+    return list.map((e) => AnomalyModel.fromJson(e)).toList();
   }
 
   Future<List<InsightModel>> getInsights() async {
-    final r = await http.get(_u('/analytics/insights'), headers: _headers);
-    if (r.statusCode >= 400) throw _err(r);
-    return (jsonDecode(r.body) as List)
-        .map((e) => InsightModel.fromJson(e))
-        .toList();
+    final list = await _json('GET', '/analytics/insights') as List;
+    return list.map((e) => InsightModel.fromJson(e)).toList();
   }
 
   // ---- Tasarruf hedefleri ----
+
   Future<List<GoalModel>> getGoals() async {
-    final r = await http.get(_u('/goals'), headers: _headers);
-    if (r.statusCode >= 400) throw _err(r);
-    return (jsonDecode(r.body) as List)
-        .map((e) => GoalModel.fromJson(e))
-        .toList();
+    final list = await _json('GET', '/goals') as List;
+    return list.map((e) => GoalModel.fromJson(e)).toList();
   }
 
+  /// [deadline] "YYYY-MM-DD"; bugünden önce olamaz.
   Future<GoalModel> createGoal(String title, double target,
       {String? deadline}) async {
     final body = <String, dynamic>{'title': title, 'target_amount': target};
     if (deadline != null) body['deadline'] = deadline;
-    final r = await http.post(_u('/goals'),
-        headers: _headers, body: jsonEncode(body));
-    if (r.statusCode >= 400) throw _err(r);
-    return GoalModel.fromJson(jsonDecode(r.body));
+    return GoalModel.fromJson(await _json('POST', '/goals', body: body));
+  }
+
+  /// Yalnızca verilen alanlar güncellenir. Son tarihi kaldırmak için
+  /// [clearDeadline] true verilir.
+  Future<GoalModel> updateGoal(
+    int id, {
+    String? title,
+    double? targetAmount,
+    String? deadline,
+    bool clearDeadline = false,
+  }) async {
+    final body = <String, dynamic>{};
+    if (title != null) body['title'] = title;
+    if (targetAmount != null) body['target_amount'] = targetAmount;
+    if (deadline != null) body['deadline'] = deadline;
+    if (clearDeadline) body['deadline'] = null;
+    return GoalModel.fromJson(await _json('PUT', '/goals/$id', body: body));
   }
 
   Future<GoalModel> contributeGoal(int id, double amount) async {
-    final r = await http.post(_u('/goals/$id/contribute'),
-        headers: _headers, body: jsonEncode({'amount': amount}));
-    if (r.statusCode >= 400) throw _err(r);
-    return GoalModel.fromJson(jsonDecode(r.body));
+    return GoalModel.fromJson(
+        await _json('POST', '/goals/$id/contribute', body: {'amount': amount}));
+  }
+
+  /// Hedefte biriken paradan geri alır. Birikimden fazlası istenirse hata fırlatır.
+  Future<GoalModel> withdrawGoal(int id, double amount) async {
+    return GoalModel.fromJson(
+        await _json('POST', '/goals/$id/withdraw', body: {'amount': amount}));
   }
 
   Future<void> deleteGoal(int id) async {
-    final r = await http.delete(_u('/goals/$id'), headers: _headers);
-    if (r.statusCode >= 400) throw _err(r);
+    await _send('DELETE', '/goals/$id');
   }
+
+  // ---- Yapay zekâ ----
 
   /// Hero model: not metninden kategori önerisi (canlı).
   Future<CategorySuggestion> categorize(String text) async {
-    final r = await http.post(_u('/ml/categorize'),
-        headers: _headers, body: jsonEncode({'text': text}));
-    if (r.statusCode >= 400) throw _err(r);
-    return CategorySuggestion.fromJson(jsonDecode(r.body));
+    return CategorySuggestion.fromJson(
+        await _json('POST', '/ml/categorize', body: {'text': text}));
   }
 
   /// Sohbet asistanı için veri paylaşımı onayı verilmiş mi?
   Future<bool> hasAiConsent() async {
-    final r = await http.get(_u('/auth/me'), headers: _headers);
-    if (r.statusCode >= 400) throw _err(r);
-    return jsonDecode(r.body)['ai_consent_at'] != null;
+    final j = await _json('GET', '/auth/me');
+    return j['ai_consent_at'] != null;
   }
 
   /// Onayı verir (true) ya da geri çeker (false).
   Future<void> setAiConsent(bool value) async {
-    final uri = _u('/auth/me/ai-consent');
-    final r = value
-        ? await http.post(uri, headers: _headers)
-        : await http.delete(uri, headers: _headers);
-    if (r.statusCode >= 400) throw _err(r);
+    await _send(value ? 'POST' : 'DELETE', '/auth/me/ai-consent');
   }
 
   /// AI Chatbot: Gemini asistanı ile sohbet.
   Future<String> sendChatMessage(String message) async {
-    final r = await http.post(_u('/chat'),
-        headers: _headers, body: jsonEncode({'message': message}));
-    if (r.statusCode >= 400) throw _err(r);
-    return jsonDecode(r.body)['reply'] as String;
+    final j = await _json('POST', '/chat', body: {'message': message});
+    return j['reply'] as String;
   }
 
   Exception _err(http.Response r) {
-    // Oturum açıkken 401: token süresi dolmuş ya da geçersiz; giriş ekranına dönülür.
-    if (r.statusCode == 401 && _token != null) {
-      sessionEndedReason = 'Oturumun sona erdi. Lütfen tekrar giriş yap.';
-      logout();
+    // Oturum açıkken 401: token yenilenemedi; giriş ekranına dönülür.
+    if (r.statusCode == 401 && session.value) {
+      _endSession('Oturumun sona erdi. Lütfen tekrar giriş yap.');
+      _forgetTokens();
     }
     try {
       final detail = jsonDecode(r.body)['detail'];

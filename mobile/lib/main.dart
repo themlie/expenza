@@ -4,6 +4,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'api_client.dart';
 import 'screens/home_shell.dart';
 import 'screens/login_screen.dart';
+import 'screens/splash_screen.dart';
 import 'theme.dart';
 
 /// Oturum düştüğünde üstte açık kalan sayfaları (işlem ekleme, sohbet...) kapatmak için.
@@ -21,6 +22,8 @@ Future<void> main() async {
     }
   });
   runApp(const ExpenzaApp());
+  // Kayıtlı oturum varsa geri yükle; bu sırada açılış ekranı gösterilir.
+  ApiClient.instance.restoreSession();
 }
 
 class ExpenzaApp extends StatelessWidget {
@@ -66,18 +69,24 @@ class ExpenzaApp extends StatelessWidget {
   }
 }
 
-/// Oturum durumuna göre giriş veya ana kabuğu gösterir. Çıkışta ya da sunucu token'ı
-/// reddettiğinde (401) ApiClient.session false olur ve giriş ekranına dönülür.
+/// Oturum durumuna göre açılış, giriş veya ana kabuğu gösterir. Çıkışta ya da oturum
+/// yenilenemediğinde ApiClient.session false olur ve giriş ekranına dönülür.
 class _AuthGate extends StatelessWidget {
   const _AuthGate();
 
   @override
   Widget build(BuildContext context) {
+    final api = ApiClient.instance;
     return ValueListenableBuilder<bool>(
-      valueListenable: ApiClient.instance.session,
-      builder: (context, loggedIn, _) => loggedIn
-          ? HomeShell(onLogout: () {})
-          : LoginScreen(onLoggedIn: () {}),
+      valueListenable: api.restoring,
+      builder: (context, restoring, _) => restoring
+          ? const SplashScreen()
+          : ValueListenableBuilder<bool>(
+              valueListenable: api.session,
+              builder: (context, loggedIn, _) => loggedIn
+                  ? HomeShell(onLogout: () {})
+                  : LoginScreen(onLoggedIn: () {}),
+            ),
     );
   }
 }
