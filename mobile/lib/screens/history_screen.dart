@@ -1,14 +1,14 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../api_client.dart';
 import '../models.dart';
 import '../theme.dart';
 import 'add_transaction_screen.dart';
-import 'dashboard_screen.dart' show categoryColor, categoryIcon, money;
+import '../format.dart';
+import '../widgets/circle_button.dart';
 
 /// İşlem geçmişi: ay seçici, ayın gelir/gider toplamı, tarihe göre gruplu liste,
 /// arama ve kategori çipleri; kaydırdıkça 50'şer işlem yüklenir.
@@ -31,7 +31,7 @@ class HistoryScreenState extends State<HistoryScreen> {
   final _scroll = ScrollController();
 
   /// Seçili ay "YYYY-MM"; null ise bütün aylar.
-  String? _month = _monthKey(DateTime.now());
+  String? _month = monthKey(DateTime.now());
   List<MonthSummaryModel> _months = [];
 
   final List<TransactionModel> _items = [];
@@ -42,9 +42,6 @@ class HistoryScreenState extends State<HistoryScreen> {
   // Filtre değişince eski sayfaların geç gelen cevapları yok sayılır.
   int _generation = 0;
   bool _exporting = false;
-
-  static String _monthKey(DateTime d) =>
-      '${d.year}-${d.month.toString().padLeft(2, '0')}';
 
   @override
   void initState() {
@@ -108,7 +105,7 @@ class HistoryScreenState extends State<HistoryScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(e.toString().replaceFirst('Exception: ', ''))));
+            content: Text(errorText(e))));
       }
     } finally {
       if (mounted && gen == _generation) setState(() => _loadingMore = false);
@@ -136,24 +133,17 @@ class HistoryScreenState extends State<HistoryScreen> {
   /// Ay okları takvim ayına göre ilerler; bu aydan ileriye ve en eski işlemin
   /// ayından geriye gidilmez.
   void _shiftMonth(int delta) {
-    final cur = DateTime.parse('${_month ?? _monthKey(DateTime.now())}-01');
-    _setMonth(_monthKey(DateTime(cur.year, cur.month + delta)));
+    final cur = DateTime.parse('${_month ?? monthKey(DateTime.now())}-01');
+    _setMonth(monthKey(DateTime(cur.year, cur.month + delta)));
   }
 
   bool get _canGoNext =>
-      _month != null && _month!.compareTo(_monthKey(DateTime.now())) < 0;
+      _month != null && _month!.compareTo(monthKey(DateTime.now())) < 0;
 
   bool get _canGoPrev =>
       _month != null &&
       _months.isNotEmpty &&
       _month!.compareTo(_months.last.month) > 0;
-
-  String _monthLabel(String? month) {
-    if (month == null) return 'Tüm aylar';
-    final text =
-        DateFormat('MMMM yyyy', 'tr_TR').format(DateTime.parse('$month-01'));
-    return text[0].toUpperCase() + text.substring(1);
-  }
 
   MonthSummaryModel? get _selectedSummary {
     for (final m in _months) {
@@ -202,52 +192,16 @@ class HistoryScreenState extends State<HistoryScreen> {
           XFile.fromData(file.bytes, mimeType: 'text/csv', name: file.fileName)
         ],
         fileNameOverrides: [file.fileName],
-        subject: 'Expenza işlemleri (${_monthLabel(_month)})',
+        subject: 'Expenza işlemleri (${monthLabel(_month)})',
       ));
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(e.toString().replaceFirst('Exception: ', ''))));
+            content: Text(errorText(e))));
       }
     } finally {
       if (mounted) setState(() => _exporting = false);
     }
-  }
-
-  Widget _circleButton(
-      {required IconData icon,
-      required String tooltip,
-      required VoidCallback? onTap}) {
-    return Tooltip(
-      message: tooltip,
-      child: Press(
-        onTap: onTap,
-        child: Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: AppColors.glassBorder)),
-          child: Icon(icon,
-              size: 19,
-              color: onTap == null ? AppColors.outline : AppColors.onSurface),
-        ),
-      ),
-    );
-  }
-
-  /// occurred_on (YYYY-MM-DD) -> "Bugün" / "Dün" / "12 Haziran".
-  String _dateLabel(String iso) {
-    final d = DateTime.tryParse(iso);
-    if (d == null) return iso;
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final that = DateTime(d.year, d.month, d.day);
-    final diff = today.difference(that).inDays;
-    if (diff == 0) return 'Bugün';
-    if (diff == 1) return 'Dün';
-    return DateFormat(d.year == now.year ? 'd MMMM' : 'd MMMM y', 'tr_TR')
-        .format(d);
   }
 
   @override
@@ -282,19 +236,11 @@ class HistoryScreenState extends State<HistoryScreen> {
                 ),
                 Row(
                   children: [
-                    _circleButton(
-                      icon: Icons.file_download_outlined,
-                      tooltip: 'CSV olarak dışa aktar',
-                      onTap: _exporting ? null : _export,
-                    ),
+                    CircleIconButton(icon: Icons.file_download_outlined, tooltip: 'CSV olarak dışa aktar', onTap: _exporting ? null : _export),
                     const SizedBox(width: 8),
-                    _circleButton(
-                      icon: isDark
+                    CircleIconButton(icon: isDark
                           ? Icons.dark_mode_outlined
-                          : Icons.light_mode_outlined,
-                      tooltip: 'Temayı değiştir',
-                      onTap: toggleThemeMode,
-                    ),
+                          : Icons.light_mode_outlined, tooltip: 'Temayı değiştir', onTap: toggleThemeMode),
                   ],
                 ),
               ],
@@ -459,7 +405,7 @@ class HistoryScreenState extends State<HistoryScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Flexible(
-                      child: Text(_monthLabel(_month),
+                      child: Text(monthLabel(_month),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
@@ -495,7 +441,7 @@ class HistoryScreenState extends State<HistoryScreen> {
   }
 
   Future<void> _pickMonth() async {
-    final current = _monthKey(DateTime.now());
+    final current = monthKey(DateTime.now());
     // Bu ayda henüz işlem yoksa da seçilebilsin.
     final months = [
       if (_months.every((m) => m.month != current))
@@ -523,7 +469,7 @@ class HistoryScreenState extends State<HistoryScreen> {
               ),
               _monthTile(ctx, '', 'Tüm aylar', null),
               for (final m in months)
-                _monthTile(ctx, m.month, _monthLabel(m.month), m),
+                _monthTile(ctx, m.month, monthLabel(m.month), m),
             ],
           ),
         ),
@@ -600,7 +546,7 @@ class HistoryScreenState extends State<HistoryScreen> {
     // Tarihe göre grupla (backend zaten tarihe göre azalan sıralı döner).
     final groups = <String, List<TransactionModel>>{};
     for (final t in txs) {
-      groups.putIfAbsent(_dateLabel(t.occurredOn), () => []).add(t);
+      groups.putIfAbsent(dayLabel(t.occurredOn), () => []).add(t);
     }
 
     final children = <Widget>[];

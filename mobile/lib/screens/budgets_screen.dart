@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../api_client.dart';
+import '../format.dart';
 import '../models.dart';
 import '../theme.dart';
-import 'dashboard_screen.dart' show categoryColor, categoryIcon, money;
 
 /// Bütçe ekranı: toplam bütçe kartı, kategori kartları, alttan açılan
 /// ekle/düzenle/sil sayfası. Gerçek backend'e bağlı.
@@ -532,12 +532,9 @@ class BudgetsScreenState extends State<BudgetsScreen> {
                         Expanded(
                           child: Press(
                             onTap: () async {
-                              final enteredLim = double.tryParse(
-                                  limitCtrl.text.replaceAll(',', '.'));
-                              if (enteredLim == null || enteredLim <= 0) return;
-                              final limInTry = CurrencyService.convertToTry(enteredLim, currencyNotifier.value);
-                              await ApiClient.instance
-                                  .upsertBudget(chosen, limInTry);
+                              final limit = parseAmountToTry(limitCtrl.text);
+                              if (limit == null) return;
+                              await ApiClient.instance.upsertBudget(chosen, limit);
                               if (ctx.mounted) Navigator.pop(ctx);
                               refresh();
                             },

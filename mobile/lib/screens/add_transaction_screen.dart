@@ -5,10 +5,11 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
 import '../api_client.dart';
+import '../format.dart';
 import '../models.dart';
 import '../ocr_service.dart';
 import '../theme.dart';
-import 'dashboard_screen.dart' show categoryColor, categoryIcon, money;
+import '../widgets/circle_button.dart';
 
 /// Harcama/Gelir ekleme veya düzenleme.
 /// Gider notu yazıldıkça GERÇEK eğitilmiş model (/ml/categorize) canlı öneri verir;
@@ -60,8 +61,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     final ex = widget.existing;
     if (ex != null) {
       _date = DateTime.tryParse(ex.occurredOn) ?? _today();
-      final displayAmount = CurrencyService.convertFromTry(ex.amount, currencyNotifier.value);
-      _amount.text = displayAmount.toStringAsFixed(displayAmount % 1 == 0 ? 0 : 2);
+      _amount.text = amountFieldText(ex.amount);
       _note.text = ex.note;
       _type = ex.type;
       _selectedCategory = ex.category;
@@ -186,9 +186,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       setState(() {
         if (scan.amount != null) {
           // Fiş tutarı TL; alan seçili para biriminde, kaydederken TL'ye geri çevrilir.
-          final shown =
-              CurrencyService.convertFromTry(scan.amount!, currencyNotifier.value);
-          _amount.text = shown.toStringAsFixed(shown % 1 == 0 ? 0 : 2);
+          _amount.text = amountFieldText(scan.amount!);
         }
         if (scan.merchant.isNotEmpty) _note.text = scan.merchant;
       });
@@ -239,12 +237,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   }
 
   Future<void> _save() async {
-    final enteredAmount = double.tryParse(_amount.text.replaceAll(',', '.'));
-    if (enteredAmount == null || enteredAmount <= 0) {
+    final amountInTry = parseAmountToTry(_amount.text);
+    if (amountInTry == null) {
       _toast('Lütfen tutar gir', error: true);
       return;
     }
-    final amountInTry = CurrencyService.convertToTry(enteredAmount, currencyNotifier.value);
     if (!_isIncome && _selectedCategory == null) {
       _toast('Lütfen kategori seç', error: true);
       return;
@@ -284,7 +281,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _busy = false);
-        _toast(e.toString().replaceFirst('Exception: ', ''), error: true);
+        _toast(errorText(e), error: true);
       }
     }
   }
@@ -308,18 +305,15 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _circleBtn(Icons.chevron_left,
-                      () => Navigator.of(context).maybePop()),
+                  CircleIconButton(icon: Icons.chevron_left, onTap: () => Navigator.of(context).maybePop(), iconSize: 20),
                   Text(title,
                       style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w500,
                           color: AppColors.onSurface)),
-                  _circleBtn(
-                      isDark
+                  CircleIconButton(icon: isDark
                           ? Icons.dark_mode_outlined
-                          : Icons.light_mode_outlined,
-                      toggleThemeMode),
+                          : Icons.light_mode_outlined, onTap: toggleThemeMode, iconSize: 20),
                 ],
               ),
               const SizedBox(height: 26),
@@ -538,20 +532,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _circleBtn(IconData icon, VoidCallback onTap) {
-    return Press(
-      onTap: onTap,
-      child: Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: AppColors.glassBorder)),
-        child: Icon(icon, size: 20, color: AppColors.onSurface),
       ),
     );
   }

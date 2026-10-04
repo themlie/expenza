@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../api_client.dart';
+import '../format.dart';
 import '../models.dart';
 import '../theme.dart';
-import 'dashboard_screen.dart' show money;
+import '../widgets/circle_button.dart';
 
 // Hedef kartlarının ayırt edici renkleri: kategori paletiyle aynı aile.
 const _paletteLight = [
@@ -128,20 +129,6 @@ class _GoalsScreenState extends State<GoalsScreen> {
     );
   }
 
-  Widget _circleButton(IconData icon, VoidCallback onTap) {
-    return Press(
-      onTap: onTap,
-      child: Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: AppColors.glassBorder)),
-        child: Icon(icon, size: 19, color: AppColors.onSurface),
-      ),
-    );
-  }
-
   Widget _header(bool isDark, int count) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -149,10 +136,8 @@ class _GoalsScreenState extends State<GoalsScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            _circleButton(Icons.arrow_back, () => Navigator.of(context).maybePop()),
-            _circleButton(
-                isDark ? Icons.dark_mode_outlined : Icons.light_mode_outlined,
-                toggleThemeMode),
+            CircleIconButton(icon: Icons.arrow_back, onTap: () => Navigator.of(context).maybePop()),
+            CircleIconButton(icon: isDark ? Icons.dark_mode_outlined : Icons.light_mode_outlined, onTap: toggleThemeMode),
           ],
         ),
         const SizedBox(height: 24),
@@ -504,8 +489,6 @@ class _GoalsScreenState extends State<GoalsScreen> {
               style: TextStyle(fontSize: 14, color: AppColors.error)),
         );
 
-  static String _msg(Object e) => e.toString().replaceFirst('Exception: ', '');
-
   Widget _empty() {
     return Padding(
       padding: const EdgeInsets.only(top: 40),
@@ -677,13 +660,9 @@ class _GoalsScreenState extends State<GoalsScreen> {
 
   /// Yeni hedef ya da [editing] verilirse düzenleme. Son tarih isteğe bağlı.
   Future<void> _openForm({GoalModel? editing}) async {
-    final rate = CurrencyService.rates[currencyNotifier.value] ?? 1.0;
     final nameCtrl = TextEditingController(text: editing?.title ?? '');
     final targetCtrl = TextEditingController(
-        text: editing == null
-            ? ''
-            : (editing.targetAmount * rate)
-                .toStringAsFixed((editing.targetAmount * rate) % 1 == 0 ? 0 : 2));
+        text: editing == null ? '' : amountFieldText(editing.targetAmount));
     DateTime? deadline =
         editing?.deadline == null ? null : DateTime.parse(editing!.deadline!);
     String? error;
@@ -780,14 +759,11 @@ class _GoalsScreenState extends State<GoalsScreen> {
                     : (editing == null ? 'Hedef oluştur' : 'Kaydet'), () async {
               if (busy) return;
               final name = nameCtrl.text.trim();
-              final entered =
-                  double.tryParse(targetCtrl.text.replaceAll(',', '.'));
-              if (name.isEmpty || entered == null || entered <= 0) {
+              final target = parseAmountToTry(targetCtrl.text);
+              if (name.isEmpty || target == null) {
                 setSheet(() => error = 'Hedef adı ve tutarı gir.');
                 return;
               }
-              final target =
-                  CurrencyService.convertToTry(entered, currencyNotifier.value);
               final iso = deadline == null
                   ? null
                   : DateFormat('yyyy-MM-dd').format(deadline!);
@@ -810,7 +786,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
               } catch (e) {
                 setSheet(() {
                   busy = false;
-                  error = _msg(e);
+                  error = errorText(e);
                 });
               }
             }),
@@ -856,18 +832,17 @@ class _GoalsScreenState extends State<GoalsScreen> {
             _error(error),
             const SizedBox(height: 26),
             _primaryButton('Çek', () async {
-              final entered = double.tryParse(amtCtrl.text.replaceAll(',', '.'));
-              if (entered == null || entered <= 0) {
+              final amount = parseAmountToTry(amtCtrl.text);
+              if (amount == null) {
                 setSheet(() => error = 'Tutar gir.');
                 return;
               }
               try {
-                await ApiClient.instance.withdrawGoal(g.id,
-                    CurrencyService.convertToTry(entered, currencyNotifier.value));
+                await ApiClient.instance.withdrawGoal(g.id, amount);
                 if (ctx.mounted) Navigator.pop(ctx);
                 _refresh();
               } catch (e) {
-                setSheet(() => error = _msg(e));
+                setSheet(() => error = errorText(e));
               }
             }),
           ],
@@ -939,10 +914,9 @@ class _GoalsScreenState extends State<GoalsScreen> {
             ),
             const SizedBox(height: 26),
             _primaryButton('Ekle', () async {
-              final enteredAmt = double.tryParse(amtCtrl.text.replaceAll(',', '.'));
-              if (enteredAmt == null || enteredAmt <= 0) return;
-              final amtInTry = CurrencyService.convertToTry(enteredAmt, currencyNotifier.value);
-              await ApiClient.instance.contributeGoal(g.id, amtInTry);
+              final amount = parseAmountToTry(amtCtrl.text);
+              if (amount == null) return;
+              await ApiClient.instance.contributeGoal(g.id, amount);
               if (ctx.mounted) Navigator.pop(ctx);
               _refresh();
             }),

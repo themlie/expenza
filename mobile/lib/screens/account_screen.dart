@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../api_client.dart';
+import '../format.dart';
 import '../models.dart';
 import '../theme.dart';
 
@@ -43,8 +44,6 @@ class _AccountScreenState extends State<AccountScreen> {
     super.dispose();
   }
 
-  static String _msg(Object e) => e.toString().replaceFirst('Exception: ', '');
-
   void _toast(String text) => ScaffoldMessenger.of(context)
       .showSnackBar(SnackBar(content: Text(text)));
 
@@ -62,7 +61,7 @@ class _AccountScreenState extends State<AccountScreen> {
       await ApiClient.instance.updateProfile(displayName: name);
       if (mounted) _toast('Adın güncellendi.');
     } catch (e) {
-      if (mounted) setState(() => _nameError = _msg(e));
+      if (mounted) setState(() => _nameError = errorText(e));
     } finally {
       if (mounted) setState(() => _savingName = false);
     }
@@ -90,7 +89,7 @@ class _AccountScreenState extends State<AccountScreen> {
         _toast('Şifren değişti. Diğer cihazlardaki oturumlar kapatıldı.');
       }
     } catch (e) {
-      if (mounted) setState(() => _passwordError = _msg(e));
+      if (mounted) setState(() => _passwordError = errorText(e));
     } finally {
       if (mounted) setState(() => _savingPassword = false);
     }
@@ -151,7 +150,7 @@ class _AccountScreenState extends State<AccountScreen> {
                       } catch (e) {
                         setDialog(() {
                           busy = false;
-                          error = _msg(e);
+                          error = errorText(e);
                         });
                       }
                     },

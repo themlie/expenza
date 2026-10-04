@@ -5,6 +5,7 @@ import '../api_client.dart';
 import '../models.dart';
 import '../theme.dart';
 import 'account_screen.dart';
+import '../format.dart';
 import '../wordmark.dart';
 
 /// Profil: kullanıcı kartı, finansal içgörüler, ayarlar, çıkış.
@@ -53,7 +54,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (mounted) {
         setState(() => _notif = !value);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(e.toString().replaceFirst('Exception: ', ''))));
+            content: Text(errorText(e))));
       }
     }
   }
@@ -65,7 +66,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(e.toString().replaceFirst('Exception: ', ''))));
+            content: Text(errorText(e))));
       }
     }
   }

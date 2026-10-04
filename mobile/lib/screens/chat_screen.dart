@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../api_client.dart';
+import '../format.dart';
 import '../models.dart';
 import '../theme.dart';
 
@@ -54,7 +55,7 @@ class _ChatScreenState extends State<ChatScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+          SnackBar(content: Text(errorText(e))),
         );
       }
     } finally {
@@ -106,7 +107,7 @@ class _ChatScreenState extends State<ChatScreen> {
       }
     } catch (e) {
       // Backend kullanıcıya gösterilebilir, genel bir mesaj döndürür.
-      final detail = e.toString().replaceFirst('Exception: ', '');
+      final detail = errorText(e);
       if (mounted) {
         setState(() {
           _messages.add(

@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../api_client.dart';
+import '../format.dart';
 import '../models.dart';
 import '../theme.dart';
-import 'dashboard_screen.dart' show money;
 
 /// Uyarılar: bütçe, bütçe hızı, hedef, olağandışı harcama ve yaklaşan ödemeler.
 /// Uyarılar backend'de o anki verilerden hesaplanır (GET /alerts). Kaydırarak ya da
@@ -43,7 +43,7 @@ class _AlertsScreenState extends State<AlertsScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(e.toString().replaceFirst('Exception: ', ''))));
+          content: Text(errorText(e))));
       _refresh();
     }
   }

@@ -3,32 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../api_client.dart';
-import '../categories.dart';
+import '../format.dart';
 import '../models.dart';
 import '../theme.dart';
+import '../widgets/circle_button.dart';
 import 'alerts_screen.dart';
 import 'goals_screen.dart';
 import 'chat_screen.dart';
-
-// Diğer ekranlar ikon ve rengi buradan alıyor; tanımlar categories.dart'ta.
-export '../categories.dart' show categoryColor, categoryIcon;
-
-final tl = NumberFormat.currency(locale: 'tr_TR', symbol: '₺', decimalDigits: 2);
-final _grp = NumberFormat('#,##0', 'tr_TR');
-
-/// Premium para gösterimi: işaret + ₺ + binlik ayraç, küsurat varsa 2 hane.
-String money(double v, {bool showSign = false}) {
-  final converted = CurrencyService.convertFromTry(v, currencyNotifier.value);
-  final neg = converted < 0;
-  final abs = converted.abs();
-  final whole = abs.truncate();
-  final cents = ((abs - whole) * 100).round();
-  final sign = neg ? '−' : (showSign ? '+' : '');
-  final symbol = currencyNotifier.value;
-  final base = '$sign$symbol${_grp.format(whole)}';
-  final sep = symbol == '₺' ? ',' : '.';
-  return cents == 0 ? base : '$base$sep${cents.toString().padLeft(2, '0')}';
-}
 
 class _DashData {
   final SummaryModel summary;
@@ -157,21 +138,6 @@ class DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _circleButton(IconData icon, VoidCallback onTap) {
-    return Press(
-      onTap: onTap,
-      child: Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(color: AppColors.glassBorder),
-        ),
-        child: Icon(icon, size: 19, color: AppColors.onSurface),
-      ),
-    );
-  }
-
   // ---- Başlık ----
   Future<void> _openAlerts() async {
     await Navigator.of(context)
@@ -230,7 +196,7 @@ class DashboardScreenState extends State<DashboardScreen> {
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        _circleButton(Icons.notifications_none, _openAlerts),
+        CircleIconButton(icon: Icons.notifications_none, onTap: _openAlerts),
         if (count > 0)
           Positioned(
             right: -2,
@@ -284,15 +250,13 @@ class DashboardScreenState extends State<DashboardScreen> {
         ),
         _bell(alertCount),
         const SizedBox(width: 8),
-        _circleButton(Icons.psychology_outlined, () {
+        CircleIconButton(icon: Icons.psychology_outlined, onTap: () {
           Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => const ChatScreen()),
           );
         }),
         const SizedBox(width: 8),
-        _circleButton(
-            isDark ? Icons.dark_mode_outlined : Icons.light_mode_outlined,
-            toggleThemeMode),
+        CircleIconButton(icon: isDark ? Icons.dark_mode_outlined : Icons.light_mode_outlined, onTap: toggleThemeMode),
       ],
     );
   }
@@ -321,7 +285,7 @@ class DashboardScreenState extends State<DashboardScreen> {
                 child: CountUp(
                   value: whole.toDouble(),
                   format: (v) =>
-                      '${neg ? '−' : ''}$symbol${_grp.format(v.round())}',
+                      '${neg ? '−' : ''}$symbol${groupDigits(v.round())}',
                   style: AppText.display(size: 58),
                 ),
               ),
