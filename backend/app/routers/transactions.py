@@ -1,16 +1,17 @@
-"""İşlem (gelir/gider) uçları. Kategori verilmezse hero model otomatik atar."""
-from datetime import date, timedelta
+"""İşlem (gelir/gider) uçları. Kategori verilmezse hero model otomatik atar.
+
+İş kuralları app/services/transactions.py'de; burada istek ve cevap biçimi var.
+"""
+from datetime import date
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
-from sqlalchemy import extract, func
 from sqlalchemy.orm import Session
 
-from .. import coach, export, models, recurring, schemas
-from ..money import ZERO
+from .. import export, models, schemas
 from ..auth import get_current_user
 from ..database import get_db
-from ..ml import categorizer
+from ..services import transactions as service
 
 router = APIRouter(prefix="/transactions", tags=["transactions"])
 
@@ -41,39 +42,7 @@ def create_transaction(
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
 ):
-    category = payload.category
-    auto = False
-    suggested = payload.suggested_category
-    confidence = payload.suggestion_confidence
-    model_name = payload.suggestion_model
-    if category is None and payload.type == models.TxType.expense:
-        # Kullanıcı kategori seçmediyse model atar (bu kayıt kullanıcıca doğrulanmamıştır).
-        category, confidence, model_name = categorizer.categorize(payload.note)
-        suggested = category
-        auto = True
-    elif category is None:
-        category = models.CategoryEnum.diger
-
-    tx = models.Transaction(
-        user_id=user.id,
-        amount=payload.amount,
-        type=payload.type,
-        category=category,
-        auto_categorized=auto,
-        suggested_category=suggested,
-        suggestion_confidence=confidence,
-        suggestion_model=model_name,
-        note=payload.note,
-        occurred_on=payload.occurred_on,
-    )
-    db.add(tx)
-    if payload.is_recurring:
-        # Geçmiş bir tarihle başlatılan seride aradaki aylar da hemen eklenir.
-        series = recurring.start_series(db, tx)
-        recurring.materialize(db, series)
-    db.commit()
-    db.refresh(tx)
-    return _saved(tx, coach.budget_alerts_after_save(db, user, tx))
+    return _saved(*service.create(db, user, payload))
 
 
 @router.get("", response_model=list[schemas.TransactionOut])
@@ -87,30 +56,10 @@ def list_transactions(
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
 ):
-    query = db.query(models.Transaction).filter(
-        models.Transaction.user_id == user.id
+    query = service.filtered(
+        db, user.id, category=category, type=type, month=_parse_month(month), q=q
     )
-    if category is not None:
-        query = query.filter(models.Transaction.category == category)
-    if type is not None:
-        query = query.filter(models.Transaction.type == type)
-    parsed = _parse_month(month)
-    if parsed:
-        query = query.filter(
-            extract("year", models.Transaction.occurred_on) == parsed[0],
-            extract("month", models.Transaction.occurred_on) == parsed[1],
-        )
-    if q:
-        query = query.filter(models.Transaction.note.ilike(f"%{q}%"))
-
-    return (
-        query.order_by(
-            models.Transaction.occurred_on.desc(), models.Transaction.id.desc()
-        )
-        .offset(offset)
-        .limit(limit)
-        .all()
-    )
+    return service.newest_first(query).offset(offset).limit(limit).all()
 
 
 @router.get("/export", response_class=Response)
@@ -120,14 +69,12 @@ def export_transactions(
     user: models.User = Depends(get_current_user),
 ):
     """İşlemleri (eskiden yeniye) CSV dosyası olarak indirir."""
-    query = db.query(models.Transaction).filter(models.Transaction.user_id == user.id)
     parsed = _parse_month(month)
-    if parsed:
-        query = query.filter(
-            extract("year", models.Transaction.occurred_on) == parsed[0],
-            extract("month", models.Transaction.occurred_on) == parsed[1],
-        )
-    rows = query.order_by(models.Transaction.occurred_on, models.Transaction.id).all()
+    rows = (
+        service.filtered(db, user.id, month=parsed)
+        .order_by(models.Transaction.occurred_on, models.Transaction.id)
+        .all()
+    )
     suffix = f"-{parsed[0]:04d}-{parsed[1]:02d}" if parsed else ""
     return Response(
         content=export.transactions_csv(rows),
@@ -144,31 +91,7 @@ def transaction_months(
     user: models.User = Depends(get_current_user),
 ):
     """İşlem olan aylar (yeniden eskiye) ve her ayın gelir/gider toplamı."""
-    tx = models.Transaction
-    year = extract("year", tx.occurred_on)
-    month = extract("month", tx.occurred_on)
-    rows = (
-        db.query(year, month, tx.type, func.sum(tx.amount), func.count(tx.id))
-        .filter(tx.user_id == user.id)
-        .group_by(year, month, tx.type)
-        .all()
-    )
-    months: dict[tuple[int, int], dict] = {}
-    for y, m, kind, total, count in rows:
-        item = months.setdefault(
-            (int(y), int(m)), {"income": ZERO, "expense": ZERO, "count": 0}
-        )
-        item["income" if kind == models.TxType.income else "expense"] += total
-        item["count"] += count
-    return [
-        schemas.MonthSummary(
-            month=f"{y:04d}-{m:02d}",
-            income=v["income"],
-            expense=v["expense"],
-            count=v["count"],
-        )
-        for (y, m), v in sorted(months.items(), reverse=True)
-    ]
+    return service.month_totals(db, user.id)
 
 
 @router.get("/summary", response_model=schemas.TransactionSummary)
@@ -178,48 +101,9 @@ def transaction_summary(
     user: models.User = Depends(get_current_user),
 ):
     """Bakiye ve toplamlar (tüm işlemler) ile istenen ayın kategori dağılımı."""
-    tx = models.Transaction
-    total = func.coalesce(func.sum(tx.amount), ZERO)
     today = date.today()
     year, mon = _parse_month(month) or (today.year, today.month)
-    this_month = (
-        extract("year", tx.occurred_on) == year,
-        extract("month", tx.occurred_on) == mon,
-    )
-
-    def totals_by_type(*filters) -> dict:
-        rows = (
-            db.query(tx.type, total)
-            .filter(tx.user_id == user.id, *filters)
-            .group_by(tx.type)
-            .all()
-        )
-        return {kind: amount for kind, amount in rows}
-
-    all_time = totals_by_type()
-    month = totals_by_type(*this_month)
-    by_category = (
-        db.query(tx.category, total)
-        .filter(tx.user_id == user.id, tx.type == models.TxType.expense, *this_month)
-        .group_by(tx.category)
-        .order_by(total.desc())
-        .all()
-    )
-
-    income = all_time.get(models.TxType.income, ZERO)
-    expense = all_time.get(models.TxType.expense, ZERO)
-    return schemas.TransactionSummary(
-        balance=income - expense,
-        total_income=income,
-        total_expense=expense,
-        month=f"{year:04d}-{mon:02d}",
-        month_income=month.get(models.TxType.income, ZERO),
-        month_expense=month.get(models.TxType.expense, ZERO),
-        month_by_category=[
-            schemas.CategoryTotal(category=cat.value, total=amount)
-            for cat, amount in by_category
-        ],
-    )
+    return service.summary(db, user.id, year, mon)
 
 
 @router.put("/{tx_id}", response_model=schemas.TransactionSaved)
@@ -232,40 +116,8 @@ def update_transaction(
     """Gönderilen alanları günceller (null gönderilen alan değişmez).
 
     is_recurring: false seriyi durdurur, true işlemi yeni bir serinin başlangıcı yapar.
-    Aktif bir seriye ait işlemde tutar, tür, kategori veya not değişirse sonraki aylar
-    da yeni değerle üretilir.
     """
-    tx = (
-        db.query(models.Transaction)
-        .filter(models.Transaction.id == tx_id, models.Transaction.user_id == user.id)
-        .first()
-    )
-    if not tx:
-        raise HTTPException(status_code=404, detail="İşlem bulunamadı")
-
-    data = {k: v for k, v in payload.model_dump(exclude_unset=True).items() if v is not None}
-    wants_recurring = data.pop("is_recurring", None)
-    previous = (tx.category, tx.type, tx.amount, tx.occurred_on)
-    for field, value in data.items():
-        setattr(tx, field, value)
-
-    series = tx.series
-    active = series is not None and series.active
-    if wants_recurring is False and active:
-        recurring.stop_series(db, series)
-    elif wants_recurring is True and not active:
-        if tx.occurred_on < date.today() - timedelta(days=schemas.MAX_RECURRING_PAST_DAYS):
-            raise HTTPException(
-                status_code=400,
-                detail="Tekrarlayan işlem en fazla 12 ay önceden başlatılabilir",
-            )
-        recurring.materialize(db, recurring.start_series(db, tx))
-    elif active and any(field in data for field in recurring.TEMPLATE_FIELDS):
-        recurring.update_template(series, tx)
-
-    db.commit()
-    db.refresh(tx)
-    return _saved(tx, coach.budget_alerts_after_save(db, user, tx, previous))
+    return _saved(*service.update(db, user, tx_id, payload))
 
 
 @router.delete("/{tx_id}", status_code=204)
@@ -275,12 +127,5 @@ def delete_transaction(
     user: models.User = Depends(get_current_user),
 ):
     """İşlemi siler. Seriye aitse seri devam eder ama silinen ay yeniden üretilmez."""
-    tx = (
-        db.query(models.Transaction)
-        .filter(models.Transaction.id == tx_id, models.Transaction.user_id == user.id)
-        .first()
-    )
-    if tx:
-        db.delete(tx)
-        db.commit()
+    service.delete(db, user.id, tx_id)
     return None

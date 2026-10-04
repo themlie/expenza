@@ -1,14 +1,14 @@
-"""Bütçe limitleri ve harcanan tutar özeti."""
-from datetime import date
+"""Bütçe limitleri ve harcanan tutar özeti (iş kuralları: app/services/budgets.py)."""
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from .. import coach, models, schemas
+from .. import models, schemas
 from ..auth import get_current_user
 from ..database import get_db
 from ..money import ZERO
+from ..services import budgets as service
 
 router = APIRouter(prefix="/budgets", tags=["budgets"])
 
@@ -19,39 +19,14 @@ def _out(budget: models.Budget, spent: dict[str, Decimal]) -> schemas.BudgetOut:
     return out
 
 
-def _this_month(db: Session, user_id: int) -> dict[str, Decimal]:
-    """İçinde bulunulan ayın kategori adına göre giderleri ("Toplam" dahil)."""
-    today = date.today()
-    return coach.month_spending(db, user_id, today.year, today.month)
-
-
 @router.post("", response_model=schemas.BudgetOut, status_code=201)
 def upsert_budget(
     payload: schemas.BudgetCreate,
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
 ):
-    # Kategori başına tek bütçe: varsa güncelle, yoksa oluştur.
-    budget = (
-        db.query(models.Budget)
-        .filter(
-            models.Budget.user_id == user.id,
-            models.Budget.category == payload.category,
-        )
-        .first()
-    )
-    if budget:
-        budget.monthly_limit = payload.monthly_limit
-    else:
-        budget = models.Budget(
-            user_id=user.id,
-            category=payload.category,
-            monthly_limit=payload.monthly_limit,
-        )
-        db.add(budget)
-    db.commit()
-    db.refresh(budget)
-    return _out(budget, _this_month(db, user.id))
+    budget = service.upsert(db, user.id, payload)
+    return _out(budget, service.spent_this_month(db, user.id))
 
 
 @router.get("", response_model=list[schemas.BudgetOut])
@@ -59,9 +34,8 @@ def list_budgets(
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
 ):
-    budgets = db.query(models.Budget).filter(models.Budget.user_id == user.id).all()
-    spent = _this_month(db, user.id)
-    return [_out(b, spent) for b in budgets]
+    spent = service.spent_this_month(db, user.id)
+    return [_out(b, spent) for b in service.list_for(db, user.id)]
 
 
 @router.delete("/{budget_id}", status_code=204)
@@ -70,12 +44,5 @@ def delete_budget(
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
 ):
-    budget = (
-        db.query(models.Budget)
-        .filter(models.Budget.id == budget_id, models.Budget.user_id == user.id)
-        .first()
-    )
-    if budget:
-        db.delete(budget)
-        db.commit()
+    service.delete(db, user.id, budget_id)
     return None

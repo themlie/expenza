@@ -3,7 +3,8 @@ import asyncio
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from . import audit, recurring, sessions
@@ -21,6 +22,7 @@ from .routers import (
     ml_router,
     transactions,
 )
+from .services.errors import ServiceError
 
 log = logging.getLogger(__name__)
 audit.configure()
@@ -91,6 +93,14 @@ async def security_headers(request, call_next):
             "Strict-Transport-Security", "max-age=31536000; includeSubDomains"
         )
     return response
+
+
+
+@app.exception_handler(ServiceError)
+async def service_error(_request: Request, exc: ServiceError):
+    # Servis katmanının kural ihlalleri (bulunamadı, izin verilmeyen işlem).
+    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+
 
 app.include_router(auth_router.router)
 app.include_router(transactions.router)

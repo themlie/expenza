@@ -1,4 +1,8 @@
-"""Kayıt, giriş, oturum yenileme ve hesap yönetimi uçları."""
+"""Kayıt, giriş, oturum yenileme ve hesap yönetimi uçları.
+
+Hesap işlemlerinin kuralları app/services/accounts.py'de; burada istek sınırları,
+parolanın yeniden sorulması ve güvenlik kaydı var.
+"""
 import logging
 from datetime import datetime, timezone
 
@@ -8,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from .. import audit, auth, models, ratelimit, schemas, sessions
 from ..database import get_db
+from ..services import accounts
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -39,19 +44,10 @@ def register(
     payload: schemas.UserCreate, request: Request, db: Session = Depends(get_db)
 ):
     ratelimit.enforce(ratelimit.register_by_ip, ratelimit.client_ip(request))
-    existing = db.query(models.User).filter(models.User.email == payload.email).first()
-    if existing:
+    if accounts.email_taken(db, payload.email):
         audit.event("register_duplicate", request, email=payload.email)
         raise HTTPException(status_code=400, detail="Bu e-posta zaten kayıtlı")
-    user = models.User(
-        email=payload.email,
-        hashed_password=auth.hash_password(payload.password),
-        display_name=payload.display_name,
-        token_version=auth.new_token_version(),
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
+    user = accounts.register(db, payload)
     audit.event("register", request, user_id=user.id)
     return user
 
@@ -123,12 +119,7 @@ def update_me(
     db: Session = Depends(get_db),
 ):
     """Ad ve uyarı tercihini günceller (null gönderilen alan değişmez)."""
-    for field, value in payload.model_dump(exclude_unset=True).items():
-        if value is not None:
-            setattr(current, field, value.strip() if isinstance(value, str) else value)
-    db.commit()
-    db.refresh(current)
-    return current
+    return accounts.update_profile(db, current, payload)
 
 
 @router.post("/change-password", response_model=schemas.Token)
@@ -144,13 +135,9 @@ def change_password(
     için yeni bir token çifti döner.
     """
     _require_password(current, payload.current_password, request, "change_password")
-    if payload.current_password == payload.new_password:
-        raise HTTPException(status_code=400, detail="Yeni parola eskisiyle aynı olamaz")
-    current.hashed_password = auth.hash_password(payload.new_password)
-    current.token_version += 1
-    sessions.revoke_all(db, current.id)
-    pair = sessions.issue_tokens(db, current)
-    db.commit()
+    pair = accounts.change_password(
+        db, current, payload.current_password, payload.new_password
+    )
     audit.event("password_changed", request, user_id=current.id)
     return pair
 
@@ -165,18 +152,7 @@ def delete_account(
     """Hesabı ve kullanıcıya ait bütün verileri kalıcı olarak siler."""
     _require_password(current, payload.password, request, "delete_account")
     uid = current.id
-    # İşlemler serilere bağlı olduğu için önce silinir.
-    for model in (
-        models.Transaction,
-        models.RecurringSeries,
-        models.Budget,
-        models.Goal,
-        models.RefreshToken,
-        models.DismissedAlert,
-    ):
-        db.query(model).filter(model.user_id == uid).delete(synchronize_session=False)
-    db.delete(current)
-    db.commit()
+    accounts.delete(db, current)
     audit.event("account_deleted", request, user_id=uid)
     return None
 
