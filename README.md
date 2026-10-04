@@ -112,6 +112,8 @@ Yayın derlemesinde backend adresi derleme sırasında verilir; adres HTTPS olma
 flutter build web --dart-define=API_BASE_URL=https://api.ornek.com
 ```
 
+Android yayın derlemesi (`flutter build apk --release`) `mobile/android/key.properties` dosyasındaki anahtarla imzalanır. Dosyanın nasıl doldurulacağı ve anahtarın nasıl üretileceği `key.properties.example` içinde yazıyor. Dosya yoksa derleme uyarı verip debug anahtarıyla imzalar; o APK yalnızca denemelik olup dağıtılmamalıdır. Anahtar ve şifreler git'e eklenmez.
+
 ## Testler
 
 Backend testleri geçici bir SQLite veritabanı kullanır ve Gemini'ye istek atmaz:

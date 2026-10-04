@@ -1,0 +1,12 @@
+# Yayın imzası için bu dosyayı key.properties adıyla kopyalayıp doldurun.
+# key.properties ve anahtar dosyası (.jks) git'e eklenmez; kaybedilirse uygulama
+# aynı kimlikle güncellenemez, yedeklenmeli.
+#
+# Anahtar üretmek için (JDK ile gelir):
+#   keytool -genkey -v -keystore %USERPROFILE%\expenza-release.jks -keyalg RSA ^
+#     -keysize 2048 -validity 10000 -alias expenza
+storePassword=
+keyPassword=
+keyAlias=expenza
+# Mutlak yol ya da android/app klasörüne göre göreli yol.
+storeFile=
