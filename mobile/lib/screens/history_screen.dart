@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../api_client.dart';
 import '../models.dart';
@@ -40,6 +41,7 @@ class HistoryScreenState extends State<HistoryScreen> {
   Object? _error;
   // Filtre değişince eski sayfaların geç gelen cevapları yok sayılır.
   int _generation = 0;
+  bool _exporting = false;
 
   static String _monthKey(DateTime d) =>
       '${d.year}-${d.month.toString().padLeft(2, '0')}';
@@ -187,6 +189,53 @@ class HistoryScreenState extends State<HistoryScreen> {
     }
   }
 
+  /// Seçili ayın (ya da bütün ayların) işlemlerini CSV olarak paylaşır. Mobilde
+  /// paylaşım menüsü açılır, webde dosya indirilir.
+  Future<void> _export() async {
+    if (_exporting) return;
+    setState(() => _exporting = true);
+    try {
+      final file =
+          await ApiClient.instance.exportTransactionsCsv(month: _month);
+      await SharePlus.instance.share(ShareParams(
+        files: [
+          XFile.fromData(file.bytes, mimeType: 'text/csv', name: file.fileName)
+        ],
+        fileNameOverrides: [file.fileName],
+        subject: 'Expenza işlemleri (${_monthLabel(_month)})',
+      ));
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(e.toString().replaceFirst('Exception: ', ''))));
+      }
+    } finally {
+      if (mounted) setState(() => _exporting = false);
+    }
+  }
+
+  Widget _circleButton(
+      {required IconData icon,
+      required String tooltip,
+      required VoidCallback? onTap}) {
+    return Tooltip(
+      message: tooltip,
+      child: Press(
+        onTap: onTap,
+        child: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: AppColors.glassBorder)),
+          child: Icon(icon,
+              size: 19,
+              color: onTap == null ? AppColors.outline : AppColors.onSurface),
+        ),
+      ),
+    );
+  }
+
   /// occurred_on (YYYY-MM-DD) -> "Bugün" / "Dün" / "12 Haziran".
   String _dateLabel(String iso) {
     final d = DateTime.tryParse(iso);
@@ -231,21 +280,22 @@ class HistoryScreenState extends State<HistoryScreen> {
                             fontSize: 15, color: AppColors.onSurfaceVariant)),
                   ],
                 ),
-                Press(
-                  onTap: toggleThemeMode,
-                  child: Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: AppColors.glassBorder)),
-                    child: Icon(
-                        isDark
-                            ? Icons.dark_mode_outlined
-                            : Icons.light_mode_outlined,
-                        size: 19,
-                        color: AppColors.onSurface),
-                  ),
+                Row(
+                  children: [
+                    _circleButton(
+                      icon: Icons.file_download_outlined,
+                      tooltip: 'CSV olarak dışa aktar',
+                      onTap: _exporting ? null : _export,
+                    ),
+                    const SizedBox(width: 8),
+                    _circleButton(
+                      icon: isDark
+                          ? Icons.dark_mode_outlined
+                          : Icons.light_mode_outlined,
+                      tooltip: 'Temayı değiştir',
+                      onTap: toggleThemeMode,
+                    ),
+                  ],
                 ),
               ],
             ),

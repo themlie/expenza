@@ -2,11 +2,11 @@
 from datetime import date, timedelta
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy import extract, func
 from sqlalchemy.orm import Session
 
-from .. import coach, models, recurring, schemas
+from .. import coach, export, models, recurring, schemas
 from ..auth import get_current_user
 from ..database import get_db
 from ..ml import categorizer
@@ -109,6 +109,31 @@ def list_transactions(
         .offset(offset)
         .limit(limit)
         .all()
+    )
+
+
+@router.get("/export", response_class=Response)
+def export_transactions(
+    month: Optional[str] = None,  # "YYYY-MM"; boşsa bütün işlemler
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    """İşlemleri (eskiden yeniye) CSV dosyası olarak indirir."""
+    query = db.query(models.Transaction).filter(models.Transaction.user_id == user.id)
+    parsed = _parse_month(month)
+    if parsed:
+        query = query.filter(
+            extract("year", models.Transaction.occurred_on) == parsed[0],
+            extract("month", models.Transaction.occurred_on) == parsed[1],
+        )
+    rows = query.order_by(models.Transaction.occurred_on, models.Transaction.id).all()
+    suffix = f"-{parsed[0]:04d}-{parsed[1]:02d}" if parsed else ""
+    return Response(
+        content=export.transactions_csv(rows),
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": f'attachment; filename="expenza-islemler{suffix}.csv"'
+        },
     )
 
 

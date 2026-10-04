@@ -92,4 +92,25 @@ void main() {
       expect(find.text('işlem 70'), findsNothing);
     }, () => MockClient((req) async => handle(req)));
   });
+
+  testWidgets('dışa aktar seçili ayın CSV dosyasını ister', (tester) async {
+    final now = DateTime.now();
+    final exports = <Uri>[];
+    await http.runWithClient(() async {
+      await tester.pumpWidget(_app(const HistoryScreen()));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('CSV olarak dışa aktar'));
+      await tester.pumpAndSettle();
+    }, () => MockClient((req) async {
+          if (req.url.path == '/transactions/export') {
+            exports.add(req.url);
+            return http.Response.bytes(
+                utf8.encode('Tarih;Tür'), 200,
+                headers: {'content-type': 'text/csv; charset=utf-8'});
+          }
+          return http.Response('[]', 200);
+        }));
+    expect(exports, hasLength(1));
+    expect(exports.single.queryParameters['month'], _key(now));
+  });
 }

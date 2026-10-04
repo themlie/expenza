@@ -313,6 +313,16 @@ class ApiClient {
     return list.map((e) => MonthSummaryModel.fromJson(e)).toList();
   }
 
+  /// İşlemleri CSV dosyası olarak indirir. [month] "YYYY-MM"; null ise hepsi.
+  Future<({Uint8List bytes, String fileName})> exportTransactionsCsv(
+      {String? month}) async {
+    final r = await _send('GET', '/transactions/export',
+        query: month == null ? null : {'month': month});
+    if (r.statusCode >= 400) throw _err(r);
+    final suffix = month == null ? '' : '-$month';
+    return (bytes: r.bodyBytes, fileName: 'expenza-islemler$suffix.csv');
+  }
+
   /// Bakiye ve toplamlar (tüm işlemler) ile bir ayın kategori dağılımı.
   /// [month] "YYYY-MM"; verilmezse içinde bulunulan ay.
   Future<SummaryModel> getSummary({String? month}) async {
