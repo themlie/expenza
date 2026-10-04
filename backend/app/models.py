@@ -1,6 +1,7 @@
 """SQLAlchemy ORM modelleri — Expenza veri modeli."""
 import enum
 from datetime import date, datetime
+from decimal import Decimal
 from typing import Optional
 
 from sqlalchemy import (
@@ -18,6 +19,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .database import Base
+from .money import ZERO, Money
 
 
 class CategoryEnum(str, enum.Enum):
@@ -90,7 +92,7 @@ class RecurringSeries(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
-    amount: Mapped[float] = mapped_column(Float)
+    amount: Mapped[Decimal] = mapped_column(Money)
     type: Mapped[TxType] = mapped_column(Enum(TxType))
     category: Mapped[CategoryEnum] = mapped_column(Enum(CategoryEnum))
     note: Mapped[str] = mapped_column(String(500), default="")
@@ -111,7 +113,7 @@ class Transaction(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
-    amount: Mapped[float] = mapped_column(Float)
+    amount: Mapped[Decimal] = mapped_column(Money)
     type: Mapped[TxType] = mapped_column(Enum(TxType), default=TxType.expense)
     category: Mapped[CategoryEnum] = mapped_column(
         Enum(CategoryEnum), default=CategoryEnum.diger
@@ -147,7 +149,7 @@ class Budget(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     category: Mapped[BudgetCategory] = mapped_column(Enum(BudgetCategory))
-    monthly_limit: Mapped[float] = mapped_column(Float)
+    monthly_limit: Mapped[Decimal] = mapped_column(Money)
 
     user: Mapped["User"] = relationship(back_populates="budgets")
 
@@ -160,8 +162,8 @@ class Goal(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     title: Mapped[str] = mapped_column(String(120))
-    target_amount: Mapped[float] = mapped_column(Float)
-    current_amount: Mapped[float] = mapped_column(Float, default=0.0)
+    target_amount: Mapped[Decimal] = mapped_column(Money)
+    current_amount: Mapped[Decimal] = mapped_column(Money, default=ZERO)
     deadline: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 

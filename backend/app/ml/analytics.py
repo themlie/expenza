@@ -7,6 +7,9 @@ uygulamasında kullanıcıya "neden" söylenebilmesi, kara-kutu doğruluğundan 
           (2) tamamlanmış aylık toplamlardan doğrusal trend ile gelecek ay tahmini.
 - Anomali: kategori bazında istatistiksel aykırılık (z-skoru). Bir harcama, kendi
            kategorisindeki ortalamadan yeterince saparsa işaretlenir.
+
+Tutarlar veritabanından Decimal gelir; buradaki hesaplar ölçüm olduğu için float'a
+çevrilerek yapılır.
 """
 from __future__ import annotations
 
@@ -34,9 +37,9 @@ def forecast_spending(txs: list[Transaction], today: date | None = None) -> dict
     monthly: dict[tuple[int, int], float] = defaultdict(float)
     cur_by_cat: dict[str, float] = defaultdict(float)
     for t in exp:
-        monthly[_month_key(t.occurred_on)] += t.amount
+        monthly[_month_key(t.occurred_on)] += float(t.amount)
         if _month_key(t.occurred_on) == (today.year, today.month):
-            cur_by_cat[t.category.value] += t.amount
+            cur_by_cat[t.category.value] += float(t.amount)
     return forecast_from_totals(monthly, cur_by_cat, today)
 
 
@@ -132,19 +135,19 @@ def detect_anomalies(
     for cat, items in by_cat.items():
         if len(items) < min_samples:
             continue
-        amounts = [t.amount for t in items]
+        amounts = [float(t.amount) for t in items]
         mean = statistics.mean(amounts)
         std = statistics.pstdev(amounts)
         if std == 0:
             continue
-        for t in items:
-            z = (t.amount - mean) / std
-            if z >= z_threshold and t.amount > mean:
-                ratio = t.amount / mean if mean else 0
+        for t, amount in zip(items, amounts):
+            z = (amount - mean) / std
+            if z >= z_threshold and amount > mean:
+                ratio = amount / mean if mean else 0
                 times = f"{ratio:.1f}".replace(".", ",")  # Türkçe ondalık virgül
                 anomalies.append({
                     "transaction_id": t.id,
-                    "amount": round(t.amount, 2),
+                    "amount": round(amount, 2),
                     "category": cat,
                     "note": t.note,
                     "occurred_on": t.occurred_on.isoformat(),

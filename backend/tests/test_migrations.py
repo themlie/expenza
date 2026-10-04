@@ -151,3 +151,32 @@ def test_total_used_as_transaction_category_moves_to_other(tmp_path):
     con.close()
     assert txs == [("eski hata", "diger", None, None), ("kahve", "yemek", "yemek", "svm")]
     assert budgets == [("toplam",)]  # toplam bütçe olduğu gibi kalır
+
+
+def test_money_columns_become_numeric_and_are_rounded(tmp_path):
+    db = tmp_path / "money.db"
+    r = _run(["-m", "alembic", "upgrade", "0007"], db)
+    assert r.returncode == 0, r.stderr
+    con = sqlite3.connect(db)
+    con.execute(
+        "INSERT INTO users (id, email, hashed_password, display_name) VALUES (1, 'a@example.com', 'x', 'A')"
+    )
+    con.execute(
+        "INSERT INTO transactions (user_id, amount, type, category, auto_categorized, is_recurring, "
+        "note, occurred_on) VALUES (1, 10.006, 'expense', 'yemek', 0, 0, 'kahve', '2026-09-01')"
+    )
+    con.execute("INSERT INTO goals (user_id, title, target_amount, current_amount) VALUES (1, 'Tatil', 999.999, 0.1)")
+    con.commit()
+    con.close()
+
+    r = _run("from app.migrate import upgrade_database; upgrade_database()", db)
+    assert r.returncode == 0, r.stderr
+
+    con = sqlite3.connect(db)
+    types = {row[1]: row[2] for row in con.execute("PRAGMA table_info(transactions)")}
+    amount = con.execute("SELECT amount FROM transactions").fetchone()[0]
+    goal = con.execute("SELECT target_amount, current_amount FROM goals").fetchone()
+    con.close()
+    assert types["amount"] == "NUMERIC(12, 2)"
+    assert amount == 10.01
+    assert goal == (1000.0, 0.1)

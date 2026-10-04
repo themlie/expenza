@@ -64,7 +64,7 @@ class ChatResponse(BaseModel):
 def _money(currency: str, rate: float) -> Callable[[float], str]:
     if currency == "TRY":
         rate = 1.0
-    return lambda amount: f"{amount * rate:.2f} {currency}"
+    return lambda amount: f"{float(amount) * rate:.2f} {currency}"
 
 
 def _financial_context(db: Session, user_id: int, money: Callable[[float], str]) -> str:

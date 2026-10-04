@@ -79,7 +79,7 @@ classDiagram
     class Transaction {
         +int id
         +int user_id
-        +float amount
+        +Decimal amount
         +TxType type
         +CategoryEnum category
         +bool auto_categorized
@@ -95,7 +95,7 @@ classDiagram
     class RecurringSeries {
         +int id
         +int user_id
-        +float amount
+        +Decimal amount
         +TxType type
         +CategoryEnum category
         +str note
@@ -108,14 +108,14 @@ classDiagram
         +int id
         +int user_id
         +CategoryEnum category
-        +float monthly_limit
+        +Decimal monthly_limit
     }
     class Goal {
         +int id
         +int user_id
         +str title
-        +float target_amount
-        +float current_amount
+        +Decimal target_amount
+        +Decimal current_amount
         +date deadline
     }
     class TxType {

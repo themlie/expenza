@@ -7,6 +7,7 @@ from sqlalchemy import extract, func
 from sqlalchemy.orm import Session
 
 from .. import coach, export, models, recurring, schemas
+from ..money import ZERO
 from ..auth import get_current_user
 from ..database import get_db
 from ..ml import categorizer
@@ -155,15 +156,15 @@ def transaction_months(
     months: dict[tuple[int, int], dict] = {}
     for y, m, kind, total, count in rows:
         item = months.setdefault(
-            (int(y), int(m)), {"income": 0.0, "expense": 0.0, "count": 0}
+            (int(y), int(m)), {"income": ZERO, "expense": ZERO, "count": 0}
         )
-        item["income" if kind == models.TxType.income else "expense"] += float(total)
+        item["income" if kind == models.TxType.income else "expense"] += total
         item["count"] += count
     return [
         schemas.MonthSummary(
             month=f"{y:04d}-{m:02d}",
-            income=round(v["income"], 2),
-            expense=round(v["expense"], 2),
+            income=v["income"],
+            expense=v["expense"],
             count=v["count"],
         )
         for (y, m), v in sorted(months.items(), reverse=True)
@@ -178,7 +179,7 @@ def transaction_summary(
 ):
     """Bakiye ve toplamlar (tüm işlemler) ile istenen ayın kategori dağılımı."""
     tx = models.Transaction
-    total = func.coalesce(func.sum(tx.amount), 0.0)
+    total = func.coalesce(func.sum(tx.amount), ZERO)
     today = date.today()
     year, mon = _parse_month(month) or (today.year, today.month)
     this_month = (
@@ -205,17 +206,17 @@ def transaction_summary(
         .all()
     )
 
-    income = all_time.get(models.TxType.income, 0.0)
-    expense = all_time.get(models.TxType.expense, 0.0)
+    income = all_time.get(models.TxType.income, ZERO)
+    expense = all_time.get(models.TxType.expense, ZERO)
     return schemas.TransactionSummary(
-        balance=round(income - expense, 2),
-        total_income=round(income, 2),
-        total_expense=round(expense, 2),
+        balance=income - expense,
+        total_income=income,
+        total_expense=expense,
         month=f"{year:04d}-{mon:02d}",
-        month_income=round(month.get(models.TxType.income, 0.0), 2),
-        month_expense=round(month.get(models.TxType.expense, 0.0), 2),
+        month_income=month.get(models.TxType.income, ZERO),
+        month_expense=month.get(models.TxType.expense, ZERO),
         month_by_category=[
-            schemas.CategoryTotal(category=cat.value, total=round(amount, 2))
+            schemas.CategoryTotal(category=cat.value, total=amount)
             for cat, amount in by_category
         ],
     )

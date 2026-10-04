@@ -1,5 +1,6 @@
 """Bütçe limitleri ve harcanan tutar özeti."""
 from datetime import date
+from decimal import Decimal
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
@@ -7,17 +8,18 @@ from sqlalchemy.orm import Session
 from .. import coach, models, schemas
 from ..auth import get_current_user
 from ..database import get_db
+from ..money import ZERO
 
 router = APIRouter(prefix="/budgets", tags=["budgets"])
 
 
-def _out(budget: models.Budget, spent: dict[str, float]) -> schemas.BudgetOut:
+def _out(budget: models.Budget, spent: dict[str, Decimal]) -> schemas.BudgetOut:
     out = schemas.BudgetOut.model_validate(budget)
-    out.spent = spent.get(budget.category.value, 0.0)
+    out.spent = spent.get(budget.category.value, ZERO)
     return out
 
 
-def _this_month(db: Session, user_id: int) -> dict[str, float]:
+def _this_month(db: Session, user_id: int) -> dict[str, Decimal]:
     """İçinde bulunulan ayın kategori adına göre giderleri ("Toplam" dahil)."""
     today = date.today()
     return coach.month_spending(db, user_id, today.year, today.month)

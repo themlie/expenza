@@ -7,6 +7,7 @@ alanda döner ve istemci kendi para biriminde gösterir.
 import calendar
 import math
 from datetime import date, timedelta
+from decimal import Decimal
 from typing import Optional
 
 from sqlalchemy import extract, func
@@ -14,6 +15,7 @@ from sqlalchemy.orm import Session
 
 from . import models, recurring, schemas
 from .ml import analytics
+from .money import ZERO, to_money
 
 WARN_RATIO = 0.8
 # Ayın ilk günlerinde günlük ortalama çok oynak; bütçe hızı bu günden sonra tahmin edilir.
@@ -46,20 +48,20 @@ def _month_filter(year: int, month: int):
 
 def month_spending(
     db: Session, user_id: int, year: int, month: int, fixed_only: bool = False
-) -> dict[str, float]:
+) -> dict[str, Decimal]:
     """Ayın kategori adına göre giderleri; "Toplam" anahtarı hepsinin toplamıdır.
 
     fixed_only: yalnızca tekrarlayan serilerden gelen giderler.
     """
-    query = db.query(Tx.category, func.coalesce(func.sum(Tx.amount), 0.0)).filter(
+    query = db.query(Tx.category, func.sum(Tx.amount)).filter(
         Tx.user_id == user_id,
         Tx.type == models.TxType.expense,
         *_month_filter(year, month),
     )
     if fixed_only:
         query = query.filter(Tx.series_id.isnot(None))
-    spent = {cat.value: float(total) for cat, total in query.group_by(Tx.category)}
-    spent[TOTAL] = sum(spent.values())
+    spent = {cat.value: to_money(total) for cat, total in query.group_by(Tx.category)}
+    spent[TOTAL] = sum(spent.values(), ZERO)
     return spent
 
 
@@ -72,7 +74,7 @@ def budget_alerts_after_save(
     db: Session,
     user: models.User,
     tx: models.Transaction,
-    previous: Optional[tuple[models.CategoryEnum, models.TxType, float, date]] = None,
+    previous: Optional[tuple[models.CategoryEnum, models.TxType, Decimal, date]] = None,
     today: Optional[date] = None,
 ) -> list[schemas.BudgetAlert]:
     """Kaydedilen gider bu ayın bir bütçesini %80'in üstüne çıkardıysa uyarı döner.
@@ -88,22 +90,22 @@ def budget_alerts_after_save(
 
     spent = month_spending(db, user.id, today.year, today.month)
 
-    def counted_before(category: str) -> float:
+    def counted_before(category: str) -> Decimal:
         """Bu kayıttan önce kategoriye sayılan tutar (güncellemede eski değer)."""
         if previous is None:
-            return 0.0
+            return ZERO
         old_cat, old_type, old_amount, old_day = previous
         same_month = (old_day.year, old_day.month) == (today.year, today.month)
         if old_type != models.TxType.expense or not same_month:
-            return 0.0
-        return old_amount if category in (old_cat.value, TOTAL) else 0.0
+            return ZERO
+        return old_amount if category in (old_cat.value, TOTAL) else ZERO
 
     alerts = []
     for budget in _budgets(db, user.id):
         key = budget.category.value
         if key not in (tx.category.value, TOTAL) or budget.monthly_limit <= 0:
             continue
-        after = spent.get(key, 0.0)
+        after = spent.get(key, ZERO)
         before = after - tx.amount + counted_before(key)
         ratio = after / budget.monthly_limit
         if ratio < WARN_RATIO:
@@ -115,7 +117,7 @@ def budget_alerts_after_save(
             schemas.BudgetAlert(
                 category=key,
                 limit=budget.monthly_limit,
-                spent=round(after, 2),
+                spent=after,
                 ratio=round(ratio, 3),
                 level="exceeded" if exceeded else "warning",
                 crossed=before / budget.monthly_limit < threshold,
@@ -154,10 +156,10 @@ def _upcoming_recurring(
 
 
 def pace_exceed_day(
-    limit: float,
-    fixed: float,
-    variable: float,
-    upcoming: list[tuple[date, float]],
+    limit: Decimal,
+    fixed: Decimal,
+    variable: Decimal,
+    upcoming: list[tuple[date, Decimal]],
     today: date,
 ) -> Optional[int]:
     """Bu harcama hızıyla bütçenin ayın kaçıncı günü aşılacağı (aşılmayacaksa None).
@@ -189,10 +191,10 @@ def _pace_alerts(
     alerts = []
     for b in budgets:
         key = b.category.value
-        total = spent.get(key, 0.0)
+        total = spent.get(key, ZERO)
         if b.monthly_limit <= 0 or total / b.monthly_limit >= WARN_RATIO:
             continue  # zaten bütçe uyarısı var
-        fixed_part = fixed.get(key, 0.0)
+        fixed_part = fixed.get(key, ZERO)
         upcoming = [
             (due, s.amount)
             for due, s in this_month
@@ -217,7 +219,7 @@ def _pace_alerts(
                 title=f"{_label(key)} bu hızla aşılacak",
                 message=f"Bu harcama hızıyla bütçe ayın {day}. günü dolacak.",
                 category=key,
-                amount=round(projected, 2),
+                amount=to_money(projected),
             )
         )
     return alerts
@@ -228,11 +230,11 @@ def goal_plan(goal: models.Goal, today: Optional[date] = None) -> dict:
     """Hedef kartı için hesaplanan alanlar (bkz. schemas.GoalOut)."""
     today = today or date.today()
     target = goal.target_amount
-    progress = 0.0 if target <= 0 else min(goal.current_amount / target, 1.0)
-    remaining = max(target - goal.current_amount, 0.0)
+    progress = 0.0 if target <= 0 else min(float(goal.current_amount / target), 1.0)
+    remaining = max(target - goal.current_amount, ZERO)
     plan = {
         "progress": progress,
-        "remaining": round(remaining, 2),
+        "remaining": remaining,
         "days_left": None,
         "months_left": None,
         "monthly_needed": None,
@@ -244,7 +246,7 @@ def goal_plan(goal: models.Goal, today: Optional[date] = None) -> dict:
         if days_left >= 0:
             months_left = max(1, math.ceil(days_left / 30.4375))
             plan["months_left"] = months_left
-            plan["monthly_needed"] = round(remaining / months_left, 2)
+            plan["monthly_needed"] = to_money(remaining / months_left)
     if remaining <= 0:
         plan["status"] = "completed"
     elif goal.deadline is None:
@@ -313,7 +315,7 @@ def _budget_alerts(spent: dict, budgets: list, today: date) -> list[schemas.Aler
         if b.monthly_limit <= 0:
             continue
         key = b.category.value
-        total = spent.get(key, 0.0)
+        total = spent.get(key, ZERO)
         ratio = total / b.monthly_limit
         if ratio < WARN_RATIO:
             continue
@@ -327,7 +329,7 @@ def _budget_alerts(spent: dict, budgets: list, today: date) -> list[schemas.Aler
                 title=f"{label} aşıldı" if exceeded else f"{label} dolmak üzere",
                 message=f"Bu ay limitin %{_pct(ratio)} seviyesine ulaştın.",
                 category=key,
-                amount=round(total, 2),
+                amount=total,
             )
         )
     return alerts

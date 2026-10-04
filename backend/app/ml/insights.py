@@ -31,11 +31,11 @@ def generate_insights(txs: list[Transaction], today: date | None = None) -> list
         mk = _month_key(t.occurred_on)
         if t.type == TxType.expense:
             if mk == cur:
-                exp_cur[t.category.value] += t.amount
+                exp_cur[t.category.value] += float(t.amount)
             elif mk == prev:
-                exp_prev[t.category.value] += t.amount
+                exp_prev[t.category.value] += float(t.amount)
         elif t.type == TxType.income and mk == cur:
-            income_cur += t.amount
+            income_cur += float(t.amount)
 
     total_cur = sum(exp_cur.values())
     total_prev = sum(exp_prev.values())

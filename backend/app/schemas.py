@@ -5,6 +5,7 @@ from typing import Literal, Optional
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
 from .models import BudgetCategory, CategoryEnum, TxType
+from .money import MoneyIn
 
 
 # ---- Auth ----
@@ -86,7 +87,7 @@ def _check_tx_date(value: Optional[date]) -> Optional[date]:
 
 # ---- Transactions ----
 class TransactionBase(BaseModel):
-    amount: float = Field(gt=0, le=MAX_AMOUNT)
+    amount: MoneyIn = Field(gt=0, le=MAX_AMOUNT)
     type: TxType = TxType.expense
     category: Optional[CategoryEnum] = None  # None => model otomatik atar
     note: str = Field(default="", max_length=MAX_NOTE)
@@ -113,7 +114,7 @@ class TransactionCreate(TransactionBase):
 
 class TransactionUpdate(BaseModel):
     # Tüm alanlar opsiyonel — yalnızca gönderilenler güncellenir.
-    amount: Optional[float] = Field(default=None, gt=0, le=MAX_AMOUNT)
+    amount: Optional[MoneyIn] = Field(default=None, gt=0, le=MAX_AMOUNT)
     type: Optional[TxType] = None
     category: Optional[CategoryEnum] = None
     note: Optional[str] = Field(default=None, max_length=MAX_NOTE)
@@ -183,11 +184,13 @@ class TransactionSummary(BaseModel):
 # ---- Budgets ----
 class BudgetCreate(BaseModel):
     category: BudgetCategory  # kategori ya da "Toplam" (bütün giderler)
-    monthly_limit: float = Field(gt=0, le=MAX_AMOUNT)
+    monthly_limit: MoneyIn = Field(gt=0, le=MAX_AMOUNT)
 
 
 class BudgetOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    # Router hesaplanan alanları sonradan atıyor; atama da doğrulanır, böylece Decimal
+    # değerler float'a çevrilir.
+    model_config = ConfigDict(from_attributes=True, validate_assignment=True)
     id: int
     category: BudgetCategory
     monthly_limit: float
@@ -254,7 +257,7 @@ def _check_deadline(value: Optional[date]) -> Optional[date]:
 
 class GoalCreate(BaseModel):
     title: str = Field(min_length=1, max_length=120)
-    target_amount: float = Field(gt=0, le=MAX_AMOUNT)
+    target_amount: MoneyIn = Field(gt=0, le=MAX_AMOUNT)
     deadline: Optional[date] = None
 
     _check_deadline = field_validator("deadline")(_check_deadline)
@@ -263,21 +266,23 @@ class GoalCreate(BaseModel):
 class GoalUpdate(BaseModel):
     # Gönderilmeyen alan değişmez; deadline için null gönderilirse son tarih kaldırılır.
     title: Optional[str] = Field(default=None, min_length=1, max_length=120)
-    target_amount: Optional[float] = Field(default=None, gt=0, le=MAX_AMOUNT)
+    target_amount: Optional[MoneyIn] = Field(default=None, gt=0, le=MAX_AMOUNT)
     deadline: Optional[date] = None
 
     _check_deadline = field_validator("deadline")(_check_deadline)
 
 
 class GoalContribute(BaseModel):
-    amount: float = Field(gt=0, le=MAX_AMOUNT)
+    amount: MoneyIn = Field(gt=0, le=MAX_AMOUNT)
 
 
 GoalStatus = Literal["completed", "no_deadline", "on_track", "behind", "overdue"]
 
 
 class GoalOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    # Router hesaplanan alanları sonradan atıyor; atama da doğrulanır, böylece Decimal
+    # değerler float'a çevrilir.
+    model_config = ConfigDict(from_attributes=True, validate_assignment=True)
     id: int
     title: str
     target_amount: float
