@@ -1,0 +1,2 @@
+# Model dosyası ikili; satır sonu dönüşümü özetini bozar.
+*.joblib binary

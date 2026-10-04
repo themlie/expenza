@@ -40,6 +40,9 @@ class Settings(BaseSettings):
     # Güvenlik olaylarının ayrıca yazılacağı dosya (ör. logs/security.log). Boşsa
     # yalnızca konsola yazılır.
     security_log_file: Optional[str] = None
+    # Kategori modelinin beklenen SHA-256 özeti. Boşsa repodaki
+    # app/ml/model/categorizer.joblib.sha256 kullanılır.
+    model_sha256: Optional[str] = None
 
 
 settings = Settings()

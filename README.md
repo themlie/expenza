@@ -152,4 +152,4 @@ python -m ml_training.train_baseline
 python -m ml_training.evaluate
 ```
 
-Üründe kullanılan model `backend/app/ml/model/categorizer.joblib` dosyasıdır ve scikit-learn 1.9.0 ile kaydedilmiştir. scikit-learn sürümü değişirse model yeniden eğitilmelidir. BERTurk kıyas modeli (`ml_training/berturk_train.py`) GPU ister; kurulumu `requirements-ml.txt` içinde açıklanıyor.
+Üründe kullanılan model `backend/app/ml/model/categorizer.joblib` dosyasıdır ve scikit-learn 1.9.0 ile kaydedilmiştir. scikit-learn sürümü değişirse model yeniden eğitilmelidir. Backend modeli açmadan önce SHA-256 özetini yanındaki `categorizer.joblib.sha256` dosyasıyla karşılaştırır; tutmazsa modeli açmaz ve kural tabanlı yedeğe düşer. `train_baseline.py` bu dosyayı modelle birlikte yazar, ikisi birlikte commit'lenmelidir. BERTurk kıyas modeli (`ml_training/berturk_train.py`) GPU ister; kurulumu `requirements-ml.txt` içinde açıklanıyor.

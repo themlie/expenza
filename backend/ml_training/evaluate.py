@@ -20,7 +20,6 @@ import time
 from pathlib import Path
 from typing import Callable, Optional
 
-import joblib
 import pandas as pd
 from sklearn.metrics import (
     accuracy_score,
@@ -125,7 +124,9 @@ def main() -> None:
 
     df = pd.read_csv(VAL_PATH).dropna(subset=["text", "label"])
     texts, labels = df["text"].tolist(), df["label"].tolist()
-    model = joblib.load(MODEL_PATH)
+    from app.ml.categorizer import load_pipeline
+
+    model = load_pipeline(Path(MODEL_PATH))
 
     results = [
         evaluate("TF-IDF + SVM (üründeki)", svm_predictor(model), texts, labels),

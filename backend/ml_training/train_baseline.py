@@ -10,6 +10,7 @@ Model `app/ml/model/categorizer.joblib` olarak kaydedilir ve backend açılışt
     python -m ml_training.train_baseline
 """
 import os
+from pathlib import Path
 
 import joblib
 import pandas as pd
@@ -19,6 +20,8 @@ from sklearn.metrics import accuracy_score, classification_report, f1_score
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import FeatureUnion, Pipeline
 from sklearn.svm import LinearSVC
+
+from app.ml.categorizer import write_hash
 
 HERE = os.path.dirname(__file__)
 DATA_PATH = os.path.join(HERE, "data", "expenza_data.csv")
@@ -72,7 +75,9 @@ def main() -> None:
 
     os.makedirs(MODEL_DIR, exist_ok=True)
     joblib.dump(model, MODEL_PATH)
+    digest = write_hash(Path(MODEL_PATH))
     print(f"\nModel kaydedildi -> {os.path.abspath(MODEL_PATH)}")
+    print(f"SHA-256: {digest} (categorizer.joblib.sha256 de commit'lenmeli)")
 
 
 if __name__ == "__main__":

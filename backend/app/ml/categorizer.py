@@ -12,8 +12,11 @@ Tüm modeller şu sözleşmeyi uygular:
 """
 from __future__ import annotations
 
+import hashlib
+import hmac
 import json
 import logging
+from pathlib import Path
 from typing import Optional
 
 from .. import llm
@@ -104,23 +107,69 @@ class MLCategorizer:
         return CategoryEnum(label), float(proba[idx])
 
 
-def _load_active():
+MODEL_PATH = Path(__file__).resolve().parent / "model" / "categorizer.joblib"
+
+
+def hash_path(model_path: Path) -> Path:
+    return model_path.with_name(model_path.name + ".sha256")
+
+
+def file_sha256(path: Path) -> str:
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 16), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def write_hash(model_path: Path) -> str:
+    """Model dosyasının özetini yanına yazar (train_baseline.py kaydettikten sonra)."""
+    digest = file_sha256(model_path)
+    # newline="\n": Windows'ta da LF yazılır, özet dosyası her yerde aynı kalır.
+    with open(hash_path(model_path), "w", encoding="ascii", newline="\n") as f:
+        f.write(digest + "\n")
+    return digest
+
+
+def verify_model(model_path: Path) -> None:
+    """joblib dosyası pickle'dır ve yüklenirken kod çalıştırabilir. Bu yüzden dosya,
+    beklenen SHA-256 özetiyle eşleşmeden açılmaz. Beklenen değer MODEL_SHA256 ortam
+    değişkeninden, yoksa repodaki categorizer.joblib.sha256 dosyasından okunur.
+    Eşleşmezse ValueError fırlatır."""
+    expected = (settings.model_sha256 or "").strip().lower()
+    if not expected:
+        sidecar = hash_path(model_path)
+        if not sidecar.exists():
+            raise ValueError(f"{sidecar.name} bulunamadı")
+        expected = sidecar.read_text(encoding="ascii").strip().lower()
+    actual = file_sha256(model_path)
+    if not hmac.compare_digest(actual, expected):
+        raise ValueError(f"özet eşleşmiyor (beklenen {expected[:12]}, dosya {actual[:12]})")
+
+
+def load_pipeline(model_path: Path = MODEL_PATH):
+    """Özeti doğrulanmış modeli yükler; doğrulanamazsa ValueError fırlatır."""
+    verify_model(model_path)
+    import joblib
+
+    return joblib.load(model_path)
+
+
+def _load_active(model_path: Path = MODEL_PATH):
     """Eğitilmiş model varsa onu, yoksa kural-tabanlı stub'ı döndürür."""
-    import os
-
-    model_path = os.path.join(os.path.dirname(__file__), "model", "categorizer.joblib")
-    if os.path.exists(model_path):
-        try:
-            import joblib
-
-            pipeline = joblib.load(model_path)
-            print(f"[categorizer] Eğitilmiş model yüklendi: {model_path}")
-            return MLCategorizer(pipeline)
-        except Exception as e:  # bozuk dosya / sürüm sorunu => stub'a düş
-            print(f"[categorizer] Model yüklenemedi ({e}); stub kullanılıyor.")
-    else:
-        print("[categorizer] Eğitilmiş model bulunamadı; stub kullanılıyor.")
-    return RuleBasedCategorizer()
+    if not model_path.exists():
+        log.warning("Eğitilmiş model bulunamadı; kural tabanlı model kullanılıyor.")
+        return RuleBasedCategorizer()
+    try:
+        pipeline = load_pipeline(model_path)
+    except ValueError as e:
+        log.error("Model doğrulanamadı (%s); kural tabanlı model kullanılıyor.", e)
+        return RuleBasedCategorizer()
+    except Exception:  # bozuk dosya / sürüm sorunu => stub'a düş
+        log.exception("Model yüklenemedi; kural tabanlı model kullanılıyor.")
+        return RuleBasedCategorizer()
+    log.info("Eğitilmiş model yüklendi: %s", model_path.name)
+    return MLCategorizer(pipeline)
 
 
 TX_CATEGORIES = list(CategoryEnum)
