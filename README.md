@@ -13,6 +13,8 @@ Flutter (mobile/)  --REST/JSON-->  FastAPI (backend/)  -->  SQLite (backend/expe
 
 Backend'de router'lar (`app/routers/`) yalnızca isteği doğrular ve cevabı biçimlendirir; iş kuralları servis katmanındadır (`app/services/`, ayrıca `coach.py`, `recurring.py`, `sessions.py`). Mobil uygulamada ekranlar `lib/screens/` altında; API istemcisi `api_client.dart`, tutar ve tarih biçimleri `format.dart`, döviz kurları `currency.dart`, ortak widget'lar `lib/widgets/` altındadır.
 
+Tanıtım sitesi `site/` klasöründe; düz HTML, CSS ve JavaScript. `main` dalına her push'ta `.github/workflows/pages.yml` onu GitHub Pages'e yayınlar.
+
 ## Belgeler
 
 | Belge | İçerik |

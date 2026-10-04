@@ -1,0 +1,1107 @@
+<!doctype html>
+<html lang="tr">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Expenza · Kişisel finans takibi</title>
+    <meta name="description"
+        content="Harcamanı aklındaki gibi yaz, Expenza kategorisini önersin, bütçeni güncellesin ve ay sonunu tahmin etsin.">
+    <meta name="theme-color" content="#EDE6D9">
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Jost:wght@300..700&amp;family=DM+Mono:wght@400;500&amp;display=swap">
+    <link rel="stylesheet" href="assets/styles.css">
+    <script src="assets/app.js" defer></script>
+</head>
+
+<body>
+    <div
+        style="background: #EDE6D9; color: #26282C; font-family: 'Jost', 'Futura', 'Century Gothic', system-ui, sans-serif">
+
+        <header class="hdr"
+            style="position: sticky; top: 0; z-index: 30; background: #FFFFFF; border-bottom: 1px solid rgba(211, 201, 182, 0.8)">
+            <nav class="ld-nav" aria-label="Ana menü"
+                style="max-width: 1200px; margin: 0 auto; padding: 0 clamp(20px, 4vw, 48px); height: 72px; display: flex; align-items: center; justify-content: space-between; gap: 24px">
+                <a href="#" class="ex-link" aria-label="Expenza ana sayfa"
+                    style="display: flex; align-items: center; padding: 12px 0; color: #26282C; text-decoration: none">
+                    <svg viewBox="0 0 610 100" width="122" height="20" fill="none" aria-hidden="true"
+                        style="display: block; overflow: visible">
+                        <g stroke="currentColor" stroke-width="7" stroke-linecap="square" stroke-linejoin="miter">
+                            <path class="wm-p" d="M56 4H2V88H56" style="animation-delay: 150ms"></path>
+                            <path class="wm-p" d="M2 46H44" style="animation-delay: 270ms"></path>
+                            <path class="wm-p" d="M2 4 32 39" transform="translate(80 0)"
+                                style="animation-delay: 230ms"></path>
+                            <path class="wm-p" d="M70 4 39 39" transform="translate(80 0)"
+                                style="animation-delay: 270ms"></path>
+                            <path class="wm-p" d="M39 48 70 88" transform="translate(80 0)"
+                                style="animation-delay: 310ms"></path>
+                            <path class="wm-p" d="M32 48 2 88" transform="translate(80 0)"
+                                style="animation-delay: 350ms"></path>
+                            <path class="wm-p" d="M2 88V4H28C68 4 68 47 28 47H2" transform="translate(174 0)"
+                                style="animation-delay: 330ms"></path>
+                            <path class="wm-p" d="M56 4H2V88H56" transform="translate(266 0)"
+                                style="animation-delay: 420ms"></path>
+                            <path class="wm-p" d="M2 46H44" transform="translate(266 0)" style="animation-delay: 540ms">
+                            </path>
+                            <path class="wm-p" d="M2 88V4L66 88V4" transform="translate(348 0)"
+                                style="animation-delay: 510ms"></path>
+                            <path class="wm-p" d="M2 4H67L2 88H67" transform="translate(440 0)"
+                                style="animation-delay: 600ms"></path>
+                            <path class="wm-p" d="M2 88 34 4 67 88" transform="translate(532 0)"
+                                style="animation-delay: 690ms"></path>
+                            <path class="wm-p" d="M14 59H55" transform="translate(532 0)"
+                                style="animation-delay: 820ms"></path>
+                        </g>
+                    </svg>
+                </a>
+                <div style="display: flex; align-items: center; gap: 32px">
+                    <div class="nav-links"
+                        style="display: flex; align-items: center; gap: 28px; font-size: 15px; font-weight: 500">
+                        <a href="#nasil" class="ex-link" style="color: #26282C">Nasıl çalışır</a>
+                        <a href="#analiz" class="ex-link" style="color: #26282C">Analiz</a>
+                        <a href="#guvenlik" class="ex-link" style="color: #26282C">Güvenlik</a>
+                        <a href="#sss" class="ex-link" style="color: #26282C">SSS</a>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 12px">
+                        <a href="#" class="ex-link"
+                            style="color: #26282C; font-size: 15px; font-weight: 500; padding: 12px 8px">Giriş yap</a>
+                        <a href="#" class="ex-btn ex-btn-primary nav-cta"
+                            style="display: inline-flex; align-items: center; height: 44px; padding: 0 20px; border-radius: 999px; background: #1F2F57; color: #F7F3EC; font-size: 15px; font-weight: 500; letter-spacing: 0.01em; text-decoration: none">Hesap
+                            oluştur</a>
+                        <button type="button" id="nav-toggle" class="ex-btn nav-menu" aria-label="Menüyü aç"
+                            aria-expanded="false" aria-controls="mobile-menu"
+                            style="width: 44px; height: 44px; border-radius: 999px; border: 1px solid #D3C9B6; background: transparent; align-items: center; justify-content: center; color: #26282C; cursor: pointer; padding: 0">
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                                <path d="M3 6.5h14M3 13.5h14" stroke="currentColor" stroke-width="1.6"
+                                    stroke-linecap="round"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </nav>
+            <div id="mobile-menu" class="mobile-menu" hidden>
+                <a href="#nasil" class="ex-link">Nasıl çalışır</a>
+                <a href="#analiz" class="ex-link">Analiz</a>
+                <a href="#guvenlik" class="ex-link">Güvenlik</a>
+                <a href="#sss" class="ex-link">SSS</a>
+                <a href="#" class="ex-btn ex-btn-primary mobile-menu-cta">Hesap oluştur</a>
+            </div>
+        </header>
+
+        <main>
+
+            <section class="hero-section" aria-labelledby="hero-title"
+                style="max-width: 1200px; margin: 0 auto; padding: clamp(16px, 3vw, 40px) clamp(20px, 4vw, 48px)">
+                <div class="hero-grid"
+                    style="display: grid; gap: clamp(32px, 5vw, 72px); align-items: start">
+                    <div style="display: flex; flex-direction: column; gap: 28px; padding-top: 8px">
+                        <div class="ld-fade"
+                            style="display: flex; align-items: center; gap: 10px; font-size: 12px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: #5D5C57">
+                            <span style="width: 8px; height: 8px; border-radius: 2px; background: #1F2F57"></span>
+                            <span>Kişisel finans takibi</span>
+                        </div>
+                        <h1 id="hero-title" aria-label="Harcamanı yaz, gerisi Expenza'da."
+                            style="font-weight: 400; font-size: clamp(42px, 7.4vw, 108px); line-height: 1; letter-spacing: -0.03em">
+                            <span class="ld-w" aria-hidden="true"><span
+                                    style="animation-delay: 80ms">Harcamanı</span></span><span class="ld-w"
+                                aria-hidden="true"><span style="animation-delay: 170ms">yaz,</span></span><span class="ld-w"
+                                aria-hidden="true"><span style="animation-delay: 300ms">gerisi</span></span><br><span class="ld-w"
+                                aria-hidden="true"><span
+                                    style="animation-delay: 390ms; color: #1F2F57">Expenza'da.</span></span>
+                        </h1>
+                        <p class="ld-fade"
+                            style="animation-delay: 520ms; font-size: clamp(18px, 1.5vw, 21px); line-height: 1.55; color: #3A3C40; max-width: 460px; text-wrap: pretty">
+                            Harcamayı aklındaki gibi yaz: <span
+                                style="font-family: 'DM Mono', ui-monospace, monospace; font-size: 0.84em; background: #E3DBCB; padding: 2px 8px; border-radius: 6px; white-space: nowrap">uber
+                                ile eve 185</span>. Expenza kategorisini önerir ve bütçeni anında günceller. Ay sonunda
+                            nerede olacağını da tahmin eder.</p>
+                        <div class="ld-fade"
+                            style="animation-delay: 640ms; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px">
+                            <a href="#" class="ex-btn ex-btn-primary"
+                                style="display: inline-flex; align-items: center; gap: 10px; height: 54px; padding: 0 28px; border-radius: 999px; background: #1F2F57; color: #F7F3EC; font-size: 16px; font-weight: 500; letter-spacing: 0.01em; text-decoration: none">Hesap
+                                oluştur
+                                <svg class="ex-arrow" width="16" height="16" viewBox="0 0 16 16" fill="none"
+                                    aria-hidden="true">
+                                    <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6"
+                                        stroke-linecap="round" stroke-linejoin="round"></path>
+                                </svg>
+                            </a>
+                            <a href="#nasil" class="ex-link"
+                                style="display: inline-flex; align-items: center; gap: 8px; height: 54px; color: #26282C; font-size: 16px; font-weight: 500">Nasıl
+                                çalışır
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                                    <path d="M8 3v10M4 9l4 4 4-4" stroke="currentColor" stroke-width="1.6"
+                                        stroke-linecap="round" stroke-linejoin="round"></path>
+                                </svg>
+                            </a>
+                        </div>
+                        <div class="ld-fade"
+                            style="animation-delay: 760ms; display: flex; align-items: flex-start; gap: 10px; padding-top: 20px; border-top: 1px solid #D3C9B6; max-width: 460px">
+                            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"
+                                style="flex: none; margin-top: 2px">
+                                <rect x="3.5" y="8" width="11" height="7.5" rx="2" stroke="#5D5C57" stroke-width="1.4">
+                                </rect>
+                                <path d="M6 8V6a3 3 0 0 1 6 0v2" stroke="#5D5C57" stroke-width="1.4"></path>
+                            </svg>
+                            <p style="font-size: 15px; line-height: 1.5; color: #5D5C57">Banka hesabına bağlanmaz. Şifre
+                                ya da kart bilgisi istemez.</p>
+                        </div>
+                    </div>
+
+                    <div id="demo" class="ld-card"
+                        style="animation-delay: 420ms; background: #F7F3EC; border: 1px solid #D3C9B6; border-radius: 28px; padding: clamp(20px, 2.4vw, 32px); box-shadow: 0 1px 0 rgba(38, 40, 44, 0.04), 0 28px 56px -32px rgba(38, 40, 44, 0.35); display: flex; flex-direction: column; gap: 20px">
+                        <noscript>
+                            <p style="font-size: 15px; color: #5D5C57">Canlı önizleme için JavaScript gerekiyor.</p>
+                        </noscript>
+                    </div>
+                </div>
+            </section>
+
+            <section class="ticker ld-fade" aria-label="Örnek notlar ve kategorileri"
+                style="animation-delay: 900ms; border-top: 1px solid #D3C9B6; border-bottom: 1px solid #D3C9B6; overflow: hidden; margin-bottom: clamp(48px, 6vw, 88px)">
+                <div class="ticker-track" style="display: flex; width: max-content">
+                    <ul style="display: flex; list-style: none; margin: 0; padding: 0">
+                        <li
+                            style="display: flex; align-items: center; gap: 12px; padding: 18px 28px; border-right: 1px solid #D3C9B6; white-space: nowrap">
+                            <span style="font-size: 17px">migros market</span><svg width="14" height="14"
+                                viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                                <path d="M3 8h10M9 4l4 4-4 4" stroke="#5D5C57" stroke-width="1.5" stroke-linecap="round"
+                                    stroke-linejoin="round"></path>
+                            </svg><span
+                                style="font-size: 12px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: #1F2F57">Yemek</span>
+                        </li>
+                        <li
+                            style="display: flex; align-items: center; gap: 12px; padding: 18px 28px; border-right: 1px solid #D3C9B6; white-space: nowrap">
+                            <span style="font-size: 17px">uber ile eve</span><svg width="14" height="14"
+                                viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                                <path d="M3 8h10M9 4l4 4-4 4" stroke="#5D5C57" stroke-width="1.5" stroke-linecap="round"
+                                    stroke-linejoin="round"></path>
+                            </svg><span
+                                style="font-size: 12px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: #1F2F57">Ulaşım</span>
+                        </li>
+                        <li
+                            style="display: flex; align-items: center; gap: 12px; padding: 18px 28px; border-right: 1px solid #D3C9B6; white-space: nowrap">
+                            <span style="font-size: 17px">maç bileti</span><svg width="14" height="14"
+                                viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                                <path d="M3 8h10M9 4l4 4-4 4" stroke="#5D5C57" stroke-width="1.5" stroke-linecap="round"
+                                    stroke-linejoin="round"></path>
+                            </svg><span
+                                style="font-size: 12px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: #1F2F57">Eğlence</span>
+                        </li>
+                        <li
+                            style="display: flex; align-items: center; gap: 12px; padding: 18px 28px; border-right: 1px solid #D3C9B6; white-space: nowrap">
+                            <span style="font-size: 17px">ekol hoca aboneliği</span><svg width="14" height="14"
+                                viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                                <path d="M3 8h10M9 4l4 4-4 4" stroke="#5D5C57" stroke-width="1.5" stroke-linecap="round"
+                                    stroke-linejoin="round"></path>
+                            </svg><span
+                                style="font-size: 12px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: #1F2F57">Eğitim</span>
+                        </li>
+                        <li
+                            style="display: flex; align-items: center; gap: 12px; padding: 18px 28px; border-right: 1px solid #D3C9B6; white-space: nowrap">
+                            <span style="font-size: 17px">elektrik faturası</span><svg width="14" height="14"
+                                viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                                <path d="M3 8h10M9 4l4 4-4 4" stroke="#5D5C57" stroke-width="1.5" stroke-linecap="round"
+                                    stroke-linejoin="round"></path>
+                            </svg><span
+                                style="font-size: 12px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: #1F2F57">Faturalar</span>
+                        </li>
+                        <li
+                            style="display: flex; align-items: center; gap: 12px; padding: 18px 28px; border-right: 1px solid #D3C9B6; white-space: nowrap">
+                            <span style="font-size: 17px">eczane</span><svg width="14" height="14" viewBox="0 0 16 16"
+                                fill="none" aria-hidden="true">
+                                <path d="M3 8h10M9 4l4 4-4 4" stroke="#5D5C57" stroke-width="1.5" stroke-linecap="round"
+                                    stroke-linejoin="round"></path>
+                            </svg><span
+                                style="font-size: 12px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: #1F2F57">Sağlık</span>
+                        </li>
+                        <li
+                            style="display: flex; align-items: center; gap: 12px; padding: 18px 28px; border-right: 1px solid #D3C9B6; white-space: nowrap">
+                            <span style="font-size: 17px">trendyol siparişi</span><svg width="14" height="14"
+                                viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                                <path d="M3 8h10M9 4l4 4-4 4" stroke="#5D5C57" stroke-width="1.5" stroke-linecap="round"
+                                    stroke-linejoin="round"></path>
+                            </svg><span
+                                style="font-size: 12px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: #1F2F57">Alışveriş</span>
+                        </li>
+                        <li
+                            style="display: flex; align-items: center; gap: 12px; padding: 18px 28px; border-right: 1px solid #D3C9B6; white-space: nowrap">
+                            <span style="font-size: 17px">anahtarcı</span><svg width="14" height="14"
+                                viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                                <path d="M3 8h10M9 4l4 4-4 4" stroke="#5D5C57" stroke-width="1.5" stroke-linecap="round"
+                                    stroke-linejoin="round"></path>
+                            </svg><span
+                                style="font-size: 12px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: #1F2F57">Diğer</span>
+                        </li>
+                        <li
+                            style="display: flex; align-items: center; gap: 12px; padding: 18px 28px; border-right: 1px solid #D3C9B6; white-space: nowrap">
+                            <span style="font-size: 17px">istanbulkart dolum</span><svg width="14" height="14"
+                                viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                                <path d="M3 8h10M9 4l4 4-4 4" stroke="#5D5C57" stroke-width="1.5" stroke-linecap="round"
+                                    stroke-linejoin="round"></path>
+                            </svg><span
+                                style="font-size: 12px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: #1F2F57">Ulaşım</span>
+                        </li>
+                        <li
+                            style="display: flex; align-items: center; gap: 12px; padding: 18px 28px; border-right: 1px solid #D3C9B6; white-space: nowrap">
+                            <span style="font-size: 17px">netflix aboneliği</span><svg width="14" height="14"
+                                viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                                <path d="M3 8h10M9 4l4 4-4 4" stroke="#5D5C57" stroke-width="1.5" stroke-linecap="round"
+                                    stroke-linejoin="round"></path>
+                            </svg><span
+                                style="font-size: 12px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: #1F2F57">Eğlence</span>
+                        </li>
+                    </ul>
+                    <ul aria-hidden="true" style="display: flex; list-style: none; margin: 0; padding: 0">
+                        <li
+                            style="display: flex; align-items: center; gap: 12px; padding: 18px 28px; border-right: 1px solid #D3C9B6; white-space: nowrap">
+                            <span style="font-size: 17px">migros market</span><svg width="14" height="14"
+                                viewBox="0 0 16 16" fill="none">
+                                <path d="M3 8h10M9 4l4 4-4 4" stroke="#5D5C57" stroke-width="1.5" stroke-linecap="round"
+                                    stroke-linejoin="round"></path>
+                            </svg><span
+                                style="font-size: 12px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: #1F2F57">Yemek</span>
+                        </li>
+                        <li
+                            style="display: flex; align-items: center; gap: 12px; padding: 18px 28px; border-right: 1px solid #D3C9B6; white-space: nowrap">
+                            <span style="font-size: 17px">uber ile eve</span><svg width="14" height="14"
+                                viewBox="0 0 16 16" fill="none">
+                                <path d="M3 8h10M9 4l4 4-4 4" stroke="#5D5C57" stroke-width="1.5" stroke-linecap="round"
+                                    stroke-linejoin="round"></path>
+                            </svg><span
+                                style="font-size: 12px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: #1F2F57">Ulaşım</span>
+                        </li>
+                        <li
+                            style="display: flex; align-items: center; gap: 12px; padding: 18px 28px; border-right: 1px solid #D3C9B6; white-space: nowrap">
+                            <span style="font-size: 17px">maç bileti</span><svg width="14" height="14"
+                                viewBox="0 0 16 16" fill="none">
+                                <path d="M3 8h10M9 4l4 4-4 4" stroke="#5D5C57" stroke-width="1.5" stroke-linecap="round"
+                                    stroke-linejoin="round"></path>
+                            </svg><span
+                                style="font-size: 12px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: #1F2F57">Eğlence</span>
+                        </li>
+                        <li
+                            style="display: flex; align-items: center; gap: 12px; padding: 18px 28px; border-right: 1px solid #D3C9B6; white-space: nowrap">
+                            <span style="font-size: 17px">ekol hoca aboneliği</span><svg width="14" height="14"
+                                viewBox="0 0 16 16" fill="none">
+                                <path d="M3 8h10M9 4l4 4-4 4" stroke="#5D5C57" stroke-width="1.5" stroke-linecap="round"
+                                    stroke-linejoin="round"></path>
+                            </svg><span
+                                style="font-size: 12px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: #1F2F57">Eğitim</span>
+                        </li>
+                        <li
+                            style="display: flex; align-items: center; gap: 12px; padding: 18px 28px; border-right: 1px solid #D3C9B6; white-space: nowrap">
+                            <span style="font-size: 17px">elektrik faturası</span><svg width="14" height="14"
+                                viewBox="0 0 16 16" fill="none">
+                                <path d="M3 8h10M9 4l4 4-4 4" stroke="#5D5C57" stroke-width="1.5" stroke-linecap="round"
+                                    stroke-linejoin="round"></path>
+                            </svg><span
+                                style="font-size: 12px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: #1F2F57">Faturalar</span>
+                        </li>
+                        <li
+                            style="display: flex; align-items: center; gap: 12px; padding: 18px 28px; border-right: 1px solid #D3C9B6; white-space: nowrap">
+                            <span style="font-size: 17px">eczane</span><svg width="14" height="14" viewBox="0 0 16 16"
+                                fill="none">
+                                <path d="M3 8h10M9 4l4 4-4 4" stroke="#5D5C57" stroke-width="1.5" stroke-linecap="round"
+                                    stroke-linejoin="round"></path>
+                            </svg><span
+                                style="font-size: 12px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: #1F2F57">Sağlık</span>
+                        </li>
+                        <li
+                            style="display: flex; align-items: center; gap: 12px; padding: 18px 28px; border-right: 1px solid #D3C9B6; white-space: nowrap">
+                            <span style="font-size: 17px">trendyol siparişi</span><svg width="14" height="14"
+                                viewBox="0 0 16 16" fill="none">
+                                <path d="M3 8h10M9 4l4 4-4 4" stroke="#5D5C57" stroke-width="1.5" stroke-linecap="round"
+                                    stroke-linejoin="round"></path>
+                            </svg><span
+                                style="font-size: 12px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: #1F2F57">Alışveriş</span>
+                        </li>
+                        <li
+                            style="display: flex; align-items: center; gap: 12px; padding: 18px 28px; border-right: 1px solid #D3C9B6; white-space: nowrap">
+                            <span style="font-size: 17px">anahtarcı</span><svg width="14" height="14"
+                                viewBox="0 0 16 16" fill="none">
+                                <path d="M3 8h10M9 4l4 4-4 4" stroke="#5D5C57" stroke-width="1.5" stroke-linecap="round"
+                                    stroke-linejoin="round"></path>
+                            </svg><span
+                                style="font-size: 12px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: #1F2F57">Diğer</span>
+                        </li>
+                        <li
+                            style="display: flex; align-items: center; gap: 12px; padding: 18px 28px; border-right: 1px solid #D3C9B6; white-space: nowrap">
+                            <span style="font-size: 17px">istanbulkart dolum</span><svg width="14" height="14"
+                                viewBox="0 0 16 16" fill="none">
+                                <path d="M3 8h10M9 4l4 4-4 4" stroke="#5D5C57" stroke-width="1.5" stroke-linecap="round"
+                                    stroke-linejoin="round"></path>
+                            </svg><span
+                                style="font-size: 12px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: #1F2F57">Ulaşım</span>
+                        </li>
+                        <li
+                            style="display: flex; align-items: center; gap: 12px; padding: 18px 28px; border-right: 1px solid #D3C9B6; white-space: nowrap">
+                            <span style="font-size: 17px">netflix aboneliği</span><svg width="14" height="14"
+                                viewBox="0 0 16 16" fill="none">
+                                <path d="M3 8h10M9 4l4 4-4 4" stroke="#5D5C57" stroke-width="1.5" stroke-linecap="round"
+                                    stroke-linejoin="round"></path>
+                            </svg><span
+                                style="font-size: 12px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: #1F2F57">Eğlence</span>
+                        </li>
+                    </ul>
+                </div>
+            </section>
+
+            <section id="neden" aria-labelledby="neden-title" style="padding: 0 clamp(8px, 1.2vw, 16px)">
+                <div
+                    style="background: #26282C; color: #EDE6D9; border-radius: clamp(24px, 3vw, 36px); padding: clamp(64px, 9vw, 128px) 0">
+                    <div style="max-width: 1200px; margin: 0 auto; padding: 0 clamp(20px, 4vw, 48px)">
+                        <span class="sr"
+                            style="display: block; font-size: 12px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: #A9A69E">Neden
+                            Expenza</span>
+                        <div
+                            style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 32px 64px; margin-top: 24px">
+                            <h2 id="neden-title" class="sr"
+                                style="flex: 1 1 520px; max-width: 680px; font-weight: 400; font-size: clamp(32px, 4.4vw, 60px); line-height: 1.04; letter-spacing: -0.025em; text-wrap: balance">
+                                <span style="color: #8E8B84">Banka uygulaman ne kadar harcadığını gösterir.</span> <span
+                                    style="color: #EDE6D9">Expenza neye harcadığını.</span>
+                            </h2>
+                            <div class="sr d1"
+                                style="flex: 1 1 340px; max-width: 440px; display: flex; flex-direction: column; gap: 18px; font-size: 18px; line-height: 1.6; color: #CFCAC0; padding-top: 8px">
+                                <p>Ekstrede bir harcama işyeri kodu, şube numarası ve şehirden ibarettir. Ne aldığını
+                                    hatırlamak sana kalır.</p>
+                                <p>Expenza'da harcamayı kendi kelimelerinle girersin. Birkaç saniyelik bu alışkanlık,
+                                    paranın nereye gittiğini fark etmeni sağlar. Kategoriyi, bütçeyi ve tahmini uygulama
+                                    hesaplar.</p>
+                            </div>
+                        </div>
+
+                        <div class="sr"
+                            style="margin-top: clamp(48px, 6vw, 88px); background: #313439; border: 1px solid #44474D; border-radius: 24px; padding: clamp(20px, 3vw, 40px); display: flex; flex-wrap: wrap; gap: 36px 56px">
+                            <div
+                                style="flex: 1 1 380px; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+                                <span
+                                    style="font-size: 12px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: #A9A69E">Ekstrede</span>
+                                <div
+                                    style="display: flex; flex-direction: column; gap: 6px; font-family: 'DM Mono', ui-monospace, monospace; font-size: 14px; color: #A9A69E">
+                                    <div class="lp-hl"
+                                        style="display: flex; align-items: baseline; gap: 10px; padding: 9px 10px; margin: 0 -10px; border-radius: 10px">
+                                        <span
+                                            style="min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">POS*UBER
+                                            TRIP HELP.UBER</span><span aria-hidden="true"
+                                            style="flex: 1 1 16px; border-bottom: 1px dotted #5A5D63"></span><span
+                                            style="white-space: nowrap">-185,00</span>
+                                    </div>
+                                    <div class="lp-hl"
+                                        style="animation-delay: 1.2s; display: flex; align-items: baseline; gap: 10px; padding: 9px 10px; margin: 0 -10px; border-radius: 10px">
+                                        <span
+                                            style="min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">MIGROS
+                                            4821 KADIKOY IST</span><span aria-hidden="true"
+                                            style="flex: 1 1 16px; border-bottom: 1px dotted #5A5D63"></span><span
+                                            style="white-space: nowrap">-642,30</span>
+                                    </div>
+                                    <div class="lp-hl"
+                                        style="animation-delay: 2.4s; display: flex; align-items: baseline; gap: 10px; padding: 9px 10px; margin: 0 -10px; border-radius: 10px">
+                                        <span
+                                            style="min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">ECZ.
+                                            SAGLIK 0021 IST</span><span aria-hidden="true"
+                                            style="flex: 1 1 16px; border-bottom: 1px dotted #5A5D63"></span><span
+                                            style="white-space: nowrap">-218,90</span>
+                                    </div>
+                                    <div class="lp-hl"
+                                        style="animation-delay: 3.6s; display: flex; align-items: baseline; gap: 10px; padding: 9px 10px; margin: 0 -10px; border-radius: 10px">
+                                        <span
+                                            style="min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">NETFLIX.COM
+                                            AMSTERDAM</span><span aria-hidden="true"
+                                            style="flex: 1 1 16px; border-bottom: 1px dotted #5A5D63"></span><span
+                                            style="white-space: nowrap">-229,99</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div
+                                style="flex: 1 1 380px; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+                                <span
+                                    style="font-size: 12px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: #EDE6D9">Expenza'da</span>
+                                <div style="display: flex; flex-direction: column; gap: 6px">
+                                    <div class="lp-hl"
+                                        style="display: flex; align-items: baseline; gap: 10px; padding: 8px 10px; margin: 0 -10px; border-radius: 10px">
+                                        <span style="font-size: 17px; font-weight: 500; white-space: nowrap">Uber ile
+                                            eve</span><span
+                                            style="font-size: 11px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: #A9A69E; white-space: nowrap">Ulaşım</span><span
+                                            aria-hidden="true"
+                                            style="flex: 1 1 16px; border-bottom: 1px dotted #5A5D63"></span><span
+                                            style="font-family: 'DM Mono', ui-monospace, monospace; font-size: 15px; white-space: nowrap">−₺185,00</span>
+                                    </div>
+                                    <div class="lp-hl"
+                                        style="animation-delay: 1.2s; display: flex; align-items: baseline; gap: 10px; padding: 8px 10px; margin: 0 -10px; border-radius: 10px">
+                                        <span style="font-size: 17px; font-weight: 500; white-space: nowrap">Haftalık
+                                            market</span><span
+                                            style="font-size: 11px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: #A9A69E; white-space: nowrap">Yemek</span><span
+                                            aria-hidden="true"
+                                            style="flex: 1 1 16px; border-bottom: 1px dotted #5A5D63"></span><span
+                                            style="font-family: 'DM Mono', ui-monospace, monospace; font-size: 15px; white-space: nowrap">−₺642,30</span>
+                                    </div>
+                                    <div class="lp-hl"
+                                        style="animation-delay: 2.4s; display: flex; align-items: baseline; gap: 10px; padding: 8px 10px; margin: 0 -10px; border-radius: 10px">
+                                        <span style="font-size: 17px; font-weight: 500; white-space: nowrap">Grip
+                                            ilacı</span><span
+                                            style="font-size: 11px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: #A9A69E; white-space: nowrap">Sağlık</span><span
+                                            aria-hidden="true"
+                                            style="flex: 1 1 16px; border-bottom: 1px dotted #5A5D63"></span><span
+                                            style="font-family: 'DM Mono', ui-monospace, monospace; font-size: 15px; white-space: nowrap">−₺218,90</span>
+                                    </div>
+                                    <div class="lp-hl"
+                                        style="animation-delay: 3.6s; display: flex; align-items: baseline; gap: 10px; padding: 8px 10px; margin: 0 -10px; border-radius: 10px">
+                                        <span style="font-size: 17px; font-weight: 500; white-space: nowrap">Netflix
+                                            aboneliği</span><span
+                                            style="font-size: 11px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: #A9A69E; white-space: nowrap">Eğlence</span><span
+                                            aria-hidden="true"
+                                            style="flex: 1 1 16px; border-bottom: 1px dotted #5A5D63"></span><span
+                                            style="font-family: 'DM Mono', ui-monospace, monospace; font-size: 15px; white-space: nowrap">−₺229,99</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="nasil" aria-labelledby="nasil-title"
+                style="max-width: 1200px; margin: 0 auto; padding: clamp(88px, 11vw, 160px) clamp(20px, 4vw, 48px) clamp(56px, 7vw, 96px)">
+                <span class="sr"
+                    style="display: block; font-size: 12px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: #5D5C57">Nasıl
+                    çalışır</span>
+                <h2 id="nasil-title" class="sr"
+                    style="margin-top: 20px; max-width: 760px; font-weight: 400; font-size: clamp(32px, 4.4vw, 60px); line-height: 1.04; letter-spacing: -0.025em; text-wrap: balance">
+                    Harcama girmek, mesaj yazmak kadar kısa.</h2>
+                <div class="swipe-hint"
+                    style="justify-content: flex-end; align-items: center; gap: 6px; margin-top: 28px; font-size: 12px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: #5D5C57">
+                    <span>Kaydır</span>
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                        <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+                            stroke-linejoin="round"></path>
+                    </svg>
+                </div>
+                <div class="steps" style="margin-top: clamp(16px, 4vw, 56px)">
+
+                    <article class="sr lift"
+                        style="background: #F7F3EC; border: 1px solid #D3C9B6; border-radius: 24px; padding: 28px; display: flex; flex-direction: column; gap: 14px">
+                        <div style="display: flex; align-items: center; gap: 12px"><span
+                                style="font-family: 'DM Mono', ui-monospace, monospace; font-size: 13px; font-weight: 500; color: #1F2F57">01</span><span
+                                style="flex: 1; height: 1px; background: #D3C9B6"></span></div>
+                        <h3
+                            style="font-size: 26px; font-weight: 500; letter-spacing: -0.01em; line-height: 1.15; margin-top: 6px">
+                            Yaz ya da fişi tara</h3>
+                        <p style="font-size: 17px; line-height: 1.55; color: #5D5C57">Notu ve tutarı yaz. Fişin varsa
+                            fotoğrafını çek; tutar ve işyeri fişten okunur, fotoğraf telefonundan çıkmaz.</p>
+                        <div aria-hidden="true"
+                            style="margin-top: auto; background: #EDE6D9; border-radius: 16px; padding: 18px; height: 156px; display: flex; align-items: center; gap: 18px">
+                            <div
+                                style="position: relative; width: 112px; flex: none; background: #FBF9F4; border-radius: 6px; padding: 10px 10px 12px; display: flex; flex-direction: column; gap: 5px; font-family: 'DM Mono', ui-monospace, monospace; font-size: 9px; color: #5D5C57; box-shadow: 0 1px 0 rgba(38, 40, 44, 0.06); overflow: hidden">
+                                <span class="lp-scan"
+                                    style="position: absolute; left: 0; right: 0; top: 6px; height: 2px; background: #1F2F57"></span>
+                                <span style="font-weight: 500; color: #26282C">MİGROS</span>
+                                <span>SÜT 1L ........ 42,50</span>
+                                <span>EKMEK ......... 15,00</span>
+                                <span>PEYNİR ....... 189,90</span>
+                                <span>...</span>
+                                <span class="lp-total"
+                                    style="margin-top: 2px; border: 1.5px solid #1F2F57; border-radius: 4px; padding: 3px 4px; color: #1F2F57; font-weight: 500">TOPLAM
+                                    642,30</span>
+                            </div>
+                            <div class="lp-read" style="display: flex; flex-direction: column; gap: 4px; min-width: 0">
+                                <span
+                                    style="font-size: 11px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: #5D5C57">Okunan</span>
+                                <span style="font-size: 28px; font-weight: 400; letter-spacing: -0.02em">₺642,30</span>
+                                <span style="font-size: 15px; color: #5D5C57">Migros</span>
+                            </div>
+                        </div>
+                    </article>
+
+                    <article class="sr d1 lift"
+                        style="background: #F7F3EC; border: 1px solid #D3C9B6; border-radius: 24px; padding: 28px; display: flex; flex-direction: column; gap: 14px">
+                        <div style="display: flex; align-items: center; gap: 12px"><span
+                                style="font-family: 'DM Mono', ui-monospace, monospace; font-size: 13px; font-weight: 500; color: #1F2F57">02</span><span
+                                style="flex: 1; height: 1px; background: #D3C9B6"></span></div>
+                        <h3
+                            style="font-size: 26px; font-weight: 500; letter-spacing: -0.01em; line-height: 1.15; margin-top: 6px">
+                            Kategori önerisi gelsin</h3>
+                        <p style="font-size: 17px; line-height: 1.55; color: #5D5C57">Model notunu okur ve sekiz
+                            kategoriden birini güven oranıyla önerir. Beğenmezsen tek dokunuşla değiştirirsin.</p>
+                        <div aria-hidden="true"
+                            style="margin-top: auto; background: #EDE6D9; border-radius: 16px; height: 156px; position: relative">
+                            <div class="lp-think"
+                                style="position: absolute; inset: 18px; display: flex; flex-direction: column; justify-content: center; gap: 12px">
+                                <span
+                                    style="font-size: 11px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: #5D5C57">Kategori
+                                    analiz ediliyor</span>
+                                <div style="display: flex; gap: 6px"><span class="lp-dot"
+                                        style="width: 7px; height: 7px; border-radius: 999px; background: #1F2F57"></span><span
+                                        class="lp-dot"
+                                        style="width: 7px; height: 7px; border-radius: 999px; background: #1F2F57; animation-delay: 0.15s"></span><span
+                                        class="lp-dot"
+                                        style="width: 7px; height: 7px; border-radius: 999px; background: #1F2F57; animation-delay: 0.3s"></span>
+                                </div>
+                            </div>
+                            <div class="lp-suggest"
+                                style="position: absolute; inset: 18px; display: flex; flex-direction: column; justify-content: center; gap: 9px">
+                                <span
+                                    style="font-size: 11px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: #5D5C57">Önerilen
+                                    kategori</span>
+                                <div style="display: flex; align-items: baseline; gap: 10px"><span
+                                        style="font-size: 30px; font-weight: 400; letter-spacing: -0.02em; line-height: 1">Ulaşım</span><span
+                                        style="font-family: 'DM Mono', ui-monospace, monospace; font-size: 12px; color: #1F2F57">%94
+                                        güven</span></div>
+                                <div
+                                    style="height: 4px; width: 140px; border-radius: 999px; background: #E3DBCB; overflow: hidden">
+                                    <div class="lp-confbar" style="height: 100%; width: 94%; background: #1F2F57"></div>
+                                </div>
+                                <div style="display: flex; gap: 6px; margin-top: 2px">
+                                    <span class="lp-press"
+                                        style="display: inline-flex; align-items: center; height: 32px; padding: 0 14px; border-radius: 999px; background: #1F2F57; color: #F7F3EC; font-size: 14px; font-weight: 500">Kabul
+                                        et</span>
+                                    <span
+                                        style="display: inline-flex; align-items: center; height: 32px; padding: 0 14px; border-radius: 999px; border: 1px solid #CFC4AF; font-size: 14px; font-weight: 500">Değiştir</span>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+
+                    <article class="sr d2 lift"
+                        style="background: #F7F3EC; border: 1px solid #D3C9B6; border-radius: 24px; padding: 28px; display: flex; flex-direction: column; gap: 14px">
+                        <div style="display: flex; align-items: center; gap: 12px"><span
+                                style="font-family: 'DM Mono', ui-monospace, monospace; font-size: 13px; font-weight: 500; color: #1F2F57">03</span><span
+                                style="flex: 1; height: 1px; background: #D3C9B6"></span></div>
+                        <h3
+                            style="font-size: 26px; font-weight: 500; letter-spacing: -0.01em; line-height: 1.15; margin-top: 6px">
+                            Tablon kendini güncellesin</h3>
+                        <p style="font-size: 17px; line-height: 1.55; color: #5D5C57">Bütçe, hedef ve analiz ekranları
+                            kaydı anında görür. Ay sonuna ne kadar kaldığını her açışında bilirsin.</p>
+                        <div aria-hidden="true"
+                            style="margin-top: auto; background: #EDE6D9; border-radius: 16px; padding: 18px; height: 156px; display: flex; flex-direction: column; justify-content: center; gap: 10px">
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px">
+                                <span style="font-size: 16px; font-weight: 500">Ulaşım</span>
+                                <span
+                                    style="display: inline-grid; justify-items: end; font-family: 'DM Mono', ui-monospace, monospace; font-size: 13px; color: #5D5C57"><span
+                                        class="lp-xa" style="grid-area: 1 / 1">₺860 / ₺1.500</span><span class="lp-xb"
+                                        style="grid-area: 1 / 1; color: #26282C">₺1.045 / ₺1.500</span></span>
+                            </div>
+                            <div
+                                style="height: 8px; border-radius: 999px; background: #E3DBCB; overflow: hidden; display: flex">
+                                <span style="width: 57%; background: #26282C"></span><span class="lp-seg"
+                                    style="width: 12%; background: #1F2F57"></span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 14px; color: #5D5C57">
+                                <span style="display: inline-grid"><span class="lp-xa" style="grid-area: 1 / 1">Kalan
+                                        ₺640</span><span class="lp-xb" style="grid-area: 1 / 1">Kalan ₺455</span></span>
+                                <span
+                                    style="display: inline-grid; justify-items: end; font-family: 'DM Mono', ui-monospace, monospace; font-size: 13px"><span
+                                        class="lp-xa" style="grid-area: 1 / 1">%57</span><span class="lp-xb"
+                                        style="grid-area: 1 / 1">%70</span></span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: #1F2F57">
+                                <span class="lp-xb" style="display: inline-flex; align-items: center; gap: 6px"><svg
+                                        width="14" height="14" viewBox="0 0 18 18" fill="none">
+                                        <circle cx="9" cy="9" r="8" stroke="#1F2F57" stroke-width="1.4"></circle>
+                                        <path d="M5.5 9.2l2.3 2.3 4.7-4.9" stroke="#1F2F57" stroke-width="1.6"
+                                            stroke-linecap="round" stroke-linejoin="round"></path>
+                                    </svg>Uber ile eve eklendi</span>
+                            </div>
+                        </div>
+                    </article>
+                </div>
+            </section>
+
+            <section id="analiz" aria-labelledby="analiz-title"
+                style="max-width: 1200px; margin: 0 auto; padding: clamp(32px, 4vw, 64px) clamp(20px, 4vw, 48px) clamp(88px, 11vw, 160px)">
+                <div
+                    style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 24px 64px">
+                    <div class="sr" style="flex: 1 1 520px; max-width: 700px">
+                        <span
+                            style="font-size: 12px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: #5D5C57">Analiz</span>
+                        <h2 id="analiz-title"
+                            style="margin-top: 20px; font-weight: 400; font-size: clamp(32px, 4.4vw, 60px); line-height: 1.04; letter-spacing: -0.025em; text-wrap: balance">
+                            Ay bitmeden ay sonunu gör.</h2>
+                    </div>
+                    <p class="sr d1"
+                        style="flex: 1 1 320px; max-width: 420px; font-size: 18px; line-height: 1.6; color: #5D5C57">
+                        Expenza geçmiş harcamalarından gelecek ayı tahmin eder. Alışkanlığının dışına çıkan bir harcama
+                        olduğunda da seni uyarır.</p>
+                </div>
+
+                <div class="bento" style="margin-top: clamp(40px, 5vw, 64px)">
+
+                    <article class="span-7 sr lift"
+                        style="background: #26282C; color: #EDE6D9; border-radius: 24px; padding: clamp(24px, 3vw, 36px); display: flex; flex-direction: column; gap: 28px">
+                        <div style="display: flex; flex-direction: column; gap: 8px; max-width: 460px">
+                            <h3 style="font-size: 26px; font-weight: 500; letter-spacing: -0.01em">Gelecek ay tahmini
+                            </h3>
+                            <p style="font-size: 16px; line-height: 1.55; color: #CFCAC0">Geçmiş aylarından hesaplanır
+                                ve her yeni harcamayla güncellenir.</p>
+                        </div>
+                        <div
+                            style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 28px">
+                            <div style="display: flex; flex-direction: column; gap: 8px">
+                                <span
+                                    style="font-size: 12px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: #A9A69E">Kasım
+                                    tahmini</span>
+                                <span
+                                    style="font-size: clamp(46px, 5.2vw, 68px); font-weight: 400; letter-spacing: -0.03em; line-height: 1">₺14.280</span>
+                                <span
+                                    style="align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 12px; border-radius: 999px; background: #3A3D42; font-size: 14px; font-weight: 500">
+                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                                        <path d="M6 2v8M2.5 6.5L6 10l3.5-3.5" stroke="currentColor" stroke-width="1.4"
+                                            stroke-linecap="round" stroke-linejoin="round"></path>
+                                    </svg>
+                                    %6 ekime göre</span>
+                            </div>
+                            <div role="img"
+                                aria-label="Son beş ay ve kasım tahmini: haziran 13.100, temmuz 15.800, ağustos 14.900, eylül 16.200, ekim 15.200, kasım tahmini 14.280 lira"
+                                style="flex: 1 1 280px; max-width: 380px; display: flex; align-items: flex-end; gap: 10px; height: 168px">
+                                <div
+                                    style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px">
+                                    <div class="sr-y"
+                                        style="width: 100%; height: 104px; border-radius: 6px; background: #4A4D53">
+                                    </div><span
+                                        style="font-size: 11px; font-weight: 500; letter-spacing: 0.12em; color: #A9A69E">HAZ</span>
+                                </div>
+                                <div
+                                    style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px">
+                                    <div class="sr-y d1"
+                                        style="width: 100%; height: 126px; border-radius: 6px; background: #4A4D53">
+                                    </div><span
+                                        style="font-size: 11px; font-weight: 500; letter-spacing: 0.12em; color: #A9A69E">TEM</span>
+                                </div>
+                                <div
+                                    style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px">
+                                    <div class="sr-y d2"
+                                        style="width: 100%; height: 118px; border-radius: 6px; background: #4A4D53">
+                                    </div><span
+                                        style="font-size: 11px; font-weight: 500; letter-spacing: 0.12em; color: #A9A69E">AĞU</span>
+                                </div>
+                                <div
+                                    style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px">
+                                    <div class="sr-y d3"
+                                        style="width: 100%; height: 130px; border-radius: 6px; background: #4A4D53">
+                                    </div><span
+                                        style="font-size: 11px; font-weight: 500; letter-spacing: 0.12em; color: #A9A69E">EYL</span>
+                                </div>
+                                <div
+                                    style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px">
+                                    <div class="sr-y d4"
+                                        style="width: 100%; height: 121px; border-radius: 6px; background: #A9A69E">
+                                    </div><span
+                                        style="font-size: 11px; font-weight: 500; letter-spacing: 0.12em; color: #EDE6D9">EKİ</span>
+                                </div>
+                                <div
+                                    style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px">
+                                    <div class="sr-y d5" style="width: 100%; height: 114px">
+                                        <div class="lp-pulse"
+                                            style="height: 100%; border-radius: 6px; border: 1.5px dashed #EDE6D9">
+                                        </div>
+                                    </div><span
+                                        style="font-size: 11px; font-weight: 500; letter-spacing: 0.12em; color: #EDE6D9">KAS</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div
+                            style="display: flex; flex-wrap: wrap; gap: 16px 40px; padding-top: 20px; border-top: 1px solid #44474D">
+                            <div style="display: flex; flex-direction: column; gap: 4px"><span
+                                    style="font-size: 14px; color: #A9A69E">Harcama hızı</span><span
+                                    style="font-size: 18px; font-weight: 500">Normal</span></div>
+                            <div style="display: flex; flex-direction: column; gap: 4px"><span
+                                    style="font-size: 14px; color: #A9A69E">Günlük ortalama</span><span
+                                    style="font-family: 'DM Mono', ui-monospace, monospace; font-size: 17px">₺476</span>
+                            </div>
+                        </div>
+                    </article>
+
+                    <article class="span-5 sr d1 lift"
+                        style="background: #F7F3EC; border: 1px solid #D3C9B6; border-radius: 24px; padding: clamp(24px, 3vw, 36px); display: flex; flex-direction: column; gap: 24px">
+                        <div style="display: flex; flex-direction: column; gap: 8px">
+                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px">
+                                <h3 style="font-size: 26px; font-weight: 500; letter-spacing: -0.01em">Olağandışı
+                                    harcamalar</h3>
+                                <span
+                                    style="display: inline-flex; align-items: center; gap: 8px; height: 26px; padding: 0 10px; border-radius: 999px; background: #F1DFD4; color: #A24B26; font-size: 13px; font-weight: 500; white-space: nowrap"><span
+                                        class="ex-ping"
+                                        style="width: 6px; height: 6px; border-radius: 999px; background: #A24B26; color: #A24B26"></span>2
+                                    uyarı</span>
+                            </div>
+                            <p style="font-size: 16px; line-height: 1.55; color: #5D5C57">Bir harcama alışkanlığından
+                                belirgin biçimde büyükse işaretlenir.</p>
+                        </div>
+                        <div style="display: flex; flex-direction: column; margin-top: auto">
+                            <div
+                                style="display: flex; justify-content: space-between; gap: 16px; padding: 16px 0; border-top: 1px solid #D3C9B6">
+                                <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0"><span
+                                        style="font-size: 17px; font-weight: 500">Elektronik mağazası</span><span
+                                        style="font-size: 14px; color: #5D5C57">Alışveriş · 28 Eyl</span></div>
+                                <div
+                                    style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px; text-align: right">
+                                    <span
+                                        style="font-family: 'DM Mono', ui-monospace, monospace; font-size: 15px">−₺8.450</span><span
+                                        style="font-size: 14px; color: #A24B26">ortalamanın 6 katı</span>
+                                </div>
+                            </div>
+                            <div
+                                style="display: flex; justify-content: space-between; gap: 16px; padding: 16px 0; border-top: 1px solid #D3C9B6">
+                                <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0"><span
+                                        style="font-size: 17px; font-weight: 500">Akşam yemeği</span><span
+                                        style="font-size: 14px; color: #5D5C57">Yemek · 21 Eyl</span></div>
+                                <div
+                                    style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px; text-align: right">
+                                    <span
+                                        style="font-family: 'DM Mono', ui-monospace, monospace; font-size: 15px">−₺1.920</span><span
+                                        style="font-size: 14px; color: #A24B26">ortalamanın 3 katı</span>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+
+                    <article class="span-5 sr lift"
+                        style="background: #F7F3EC; border: 1px solid #D3C9B6; border-radius: 24px; padding: clamp(24px, 3vw, 36px); display: flex; flex-direction: column; gap: 24px">
+                        <div style="display: flex; flex-direction: column; gap: 8px">
+                            <h3 style="font-size: 26px; font-weight: 500; letter-spacing: -0.01em">Kategori bütçeleri
+                            </h3>
+                            <p style="font-size: 16px; line-height: 1.55; color: #5D5C57">Her kategoriye aylık limit
+                                koy, ne kadarını kullandığını yüzde olarak izle.</p>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 18px; margin-top: auto">
+                            <div style="display: flex; flex-direction: column; gap: 8px">
+                                <div
+                                    style="display: flex; justify-content: space-between; gap: 12px; align-items: baseline">
+                                    <span style="font-size: 16px; font-weight: 500">Yemek</span><span
+                                        style="font-family: 'DM Mono', ui-monospace, monospace; font-size: 13px; color: #5D5C57">₺2.782
+                                        / ₺3.200 · %87</span>
+                                </div>
+                                <div style="height: 8px; border-radius: 999px; background: #E3DBCB; overflow: hidden">
+                                    <div class="sr-x" style="width: 87%; height: 100%; background: #26282C"></div>
+                                </div>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 8px">
+                                <div
+                                    style="display: flex; justify-content: space-between; gap: 12px; align-items: baseline">
+                                    <span style="font-size: 16px; font-weight: 500">Faturalar</span><span
+                                        style="font-family: 'DM Mono', ui-monospace, monospace; font-size: 13px; color: #5D5C57">₺1.980
+                                        / ₺2.500 · %79</span>
+                                </div>
+                                <div style="height: 8px; border-radius: 999px; background: #E3DBCB; overflow: hidden">
+                                    <div class="sr-x d1" style="width: 79%; height: 100%; background: #26282C"></div>
+                                </div>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 8px">
+                                <div
+                                    style="display: flex; justify-content: space-between; gap: 12px; align-items: baseline">
+                                    <span style="font-size: 16px; font-weight: 500">Ulaşım</span><span
+                                        style="font-family: 'DM Mono', ui-monospace, monospace; font-size: 13px; color: #5D5C57">₺1.045
+                                        / ₺1.500 · %70</span>
+                                </div>
+                                <div style="height: 8px; border-radius: 999px; background: #E3DBCB; overflow: hidden">
+                                    <div class="sr-x d2" style="width: 70%; height: 100%; background: #26282C"></div>
+                                </div>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 8px">
+                                <div
+                                    style="display: flex; justify-content: space-between; gap: 12px; align-items: baseline">
+                                    <span style="font-size: 16px; font-weight: 500">Eğlence</span><span
+                                        style="font-family: 'DM Mono', ui-monospace, monospace; font-size: 13px; color: #A24B26">₺760
+                                        / ₺800 · %95</span>
+                                </div>
+                                <div style="height: 8px; border-radius: 999px; background: #E3DBCB; overflow: hidden">
+                                    <div class="sr-x d3" style="width: 95%; height: 100%; background: #A24B26"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+
+                    <article class="span-7 sr d1 lift"
+                        style="background: #1F2F57; color: #F7F3EC; border-radius: 24px; padding: clamp(24px, 3vw, 36px); display: flex; flex-direction: column; gap: 28px">
+                        <div style="display: flex; flex-direction: column; gap: 8px; max-width: 460px">
+                            <h3 style="font-size: 26px; font-weight: 500; letter-spacing: -0.01em">Tasarruf hedefleri
+                            </h3>
+                            <p style="font-size: 16px; line-height: 1.55; color: #C9CFDC">Biriktirdiğin parayı bir
+                                hedefe bağla. Her katkıdan sonra ne kadar yaklaştığını görürsün.</p>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 6px">
+                            <span
+                                style="font-size: 12px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: #C9CFDC">Toplam
+                                birikim</span>
+                            <span
+                                style="font-size: clamp(42px, 4.6vw, 60px); font-weight: 400; letter-spacing: -0.03em; line-height: 1">₺24.600</span>
+                        </div>
+                        <div style="display: flex; flex-wrap: wrap; gap: 20px 32px; margin-top: auto">
+                            <div style="flex: 1 1 220px; display: flex; flex-direction: column; gap: 10px">
+                                <div
+                                    style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px">
+                                    <span style="font-size: 17px; font-weight: 500">Yaz tatili</span><span
+                                        style="font-family: 'DM Mono', ui-monospace, monospace; font-size: 13px">%61</span>
+                                </div>
+                                <div
+                                    style="height: 8px; border-radius: 999px; background: rgba(237, 230, 217, 0.2); overflow: hidden">
+                                    <div class="sr-x" style="width: 61%; height: 100%; background: #EDE6D9"></div>
+                                </div>
+                                <span
+                                    style="font-family: 'DM Mono', ui-monospace, monospace; font-size: 13px; color: #C9CFDC">₺18.400
+                                    / ₺30.000</span>
+                            </div>
+                            <div style="flex: 1 1 220px; display: flex; flex-direction: column; gap: 10px">
+                                <div
+                                    style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px">
+                                    <span style="font-size: 17px; font-weight: 500">Yeni bilgisayar</span><span
+                                        style="font-family: 'DM Mono', ui-monospace, monospace; font-size: 13px">%25</span>
+                                </div>
+                                <div
+                                    style="height: 8px; border-radius: 999px; background: rgba(237, 230, 217, 0.2); overflow: hidden">
+                                    <div class="sr-x d1" style="width: 25%; height: 100%; background: #EDE6D9"></div>
+                                </div>
+                                <span
+                                    style="font-family: 'DM Mono', ui-monospace, monospace; font-size: 13px; color: #C9CFDC">₺6.200
+                                    / ₺25.000</span>
+                            </div>
+                        </div>
+                    </article>
+                </div>
+            </section>
+
+            <section id="guvenlik" aria-labelledby="guvenlik-title" style="padding: 0 clamp(8px, 1.2vw, 16px)">
+                <div
+                    style="background: #26282C; color: #EDE6D9; border-radius: clamp(24px, 3vw, 36px); padding: clamp(64px, 9vw, 128px) 0">
+                    <div style="max-width: 1200px; margin: 0 auto; padding: 0 clamp(20px, 4vw, 48px)">
+                        <span class="sr"
+                            style="display: block; font-size: 12px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: #A9A69E">Güvenlik</span>
+                        <div
+                            style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 24px 64px; margin-top: 20px">
+                            <h2 id="guvenlik-title" class="sr"
+                                style="flex: 1 1 520px; max-width: 700px; font-weight: 400; font-size: clamp(32px, 4.4vw, 60px); line-height: 1.04; letter-spacing: -0.025em; text-wrap: balance">
+                                Bankana dokunmadan çalışır.</h2>
+                            <p class="sr d1"
+                                style="flex: 1 1 320px; max-width: 420px; font-size: 18px; line-height: 1.6; color: #CFCAC0">
+                                Expenza bir kayıt defteridir. Paranı yönetmez, hesabına erişmez.</p>
+                        </div>
+                        <div style="display: flex; flex-wrap: wrap; gap: 40px 32px; margin-top: clamp(48px, 6vw, 80px)">
+                            <div class="sr draw-scope"
+                                style="flex: 1 1 280px; display: flex; flex-direction: column; gap: 14px; padding-top: 24px; border-top: 1px solid #44474D">
+                                <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+                                    <path
+                                        d="M11.5 16.5l5-5M9 13l-2.5 2.5a4 4 0 0 0 5.7 5.7L14.5 19M13.5 9l2.3-2.3a4 4 0 0 1 5.7 5.7L19 15"
+                                        stroke="#EDE6D9" stroke-width="1.6" stroke-linecap="round"></path>
+                                    <path d="M5 5l18 18" stroke="#EDE6D9" stroke-width="1.6" stroke-linecap="round">
+                                    </path>
+                                </svg>
+                                <h3 style="font-size: 23px; font-weight: 500; letter-spacing: -0.01em">Banka bağlantısı
+                                    yok</h3>
+                                <p style="font-size: 16px; line-height: 1.6; color: #CFCAC0">Şifre, kart numarası ya da
+                                    internet bankacılığı girişi istemez. Harcamaları sen eklersin.</p>
+                            </div>
+                            <div class="sr d1 draw-scope"
+                                style="flex: 1 1 280px; display: flex; flex-direction: column; gap: 14px; padding-top: 24px; border-top: 1px solid #44474D">
+                                <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+                                    <rect x="8" y="3.5" width="12" height="21" rx="3" stroke="#EDE6D9"
+                                        stroke-width="1.6"></rect>
+                                    <path d="M11 9h6M11 12.5h6M11 16h4" stroke="#EDE6D9" stroke-width="1.6"
+                                        stroke-linecap="round"></path>
+                                </svg>
+                                <h3 style="font-size: 23px; font-weight: 500; letter-spacing: -0.01em">Fiş fotoğrafı
+                                    telefonunda kalır</h3>
+                                <p style="font-size: 16px; line-height: 1.6; color: #CFCAC0">Tutar ve işyeri adı cihazın
+                                    üzerinde okunur. Görüntü sunucuya yüklenmez.</p>
+                            </div>
+                            <div class="sr d2 draw-scope"
+                                style="flex: 1 1 280px; display: flex; flex-direction: column; gap: 14px; padding-top: 24px; border-top: 1px solid #44474D">
+                                <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+                                    <rect x="6" y="12.5" width="16" height="11" rx="3" stroke="#EDE6D9"
+                                        stroke-width="1.6"></rect>
+                                    <path d="M9.5 12.5V9a4.5 4.5 0 0 1 9 0v3.5" stroke="#EDE6D9" stroke-width="1.6">
+                                    </path>
+                                    <path d="M14 17v2.5" stroke="#EDE6D9" stroke-width="1.6" stroke-linecap="round">
+                                    </path>
+                                </svg>
+                                <h3 style="font-size: 23px; font-weight: 500; letter-spacing: -0.01em">Şifren açık metin
+                                    olarak saklanmaz</h3>
+                                <p style="font-size: 16px; line-height: 1.6; color: #CFCAC0">Giriş şifren tek yönlü
+                                    özetlenerek tutulur. Açık hâli hiçbir yerde kayıtlı değildir.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="sss" aria-labelledby="sss-title"
+                style="max-width: 1200px; margin: 0 auto; padding: clamp(88px, 11vw, 160px) clamp(20px, 4vw, 48px)">
+                <div style="display: flex; flex-wrap: wrap; gap: 40px 64px">
+                    <div class="sr"
+                        style="flex: 1 1 300px; max-width: 400px; display: flex; flex-direction: column; gap: 20px">
+                        <span
+                            style="font-size: 12px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: #5D5C57">SSS</span>
+                        <h2 id="sss-title"
+                            style="font-weight: 400; font-size: clamp(32px, 4.4vw, 60px); line-height: 1.04; letter-spacing: -0.025em">
+                            Aklındaki sorular</h2>
+
+                    </div>
+                    <div class="sr d1" style="flex: 2 1 520px; min-width: 0; border-top: 1px solid #D3C9B6">
+                        <details open="open" style="border-bottom: 1px solid #D3C9B6">
+                            <summary
+                                style="display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 24px 0; font-size: clamp(18px, 1.6vw, 21px); font-weight: 500">
+                                Banka hesabımı bağlamam gerekiyor mu?<span class="faq-ic" aria-hidden="true"
+                                    style="flex: none; width: 36px; height: 36px; border-radius: 999px; border: 1px solid #D3C9B6; display: inline-flex; align-items: center; justify-content: center"><svg
+                                        width="14" height="14" viewBox="0 0 14 14" fill="none">
+                                        <path d="M7 2v10M2 7h10" stroke="#26282C" stroke-width="1.5"
+                                            stroke-linecap="round"></path>
+                                    </svg></span></summary>
+                            <p class="faq-a"
+                                style="padding: 0 52px 24px 0; font-size: 17px; line-height: 1.6; color: #5D5C57">Hayır.
+                                Expenza bankanla konuşmaz. Harcamaları not yazarak ya da fiş tarayarak eklersin.</p>
+                        </details>
+                        <details style="border-bottom: 1px solid #D3C9B6">
+                            <summary
+                                style="display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 24px 0; font-size: clamp(18px, 1.6vw, 21px); font-weight: 500">
+                                Model kategoriyi yanlış tahmin ederse ne olur?<span class="faq-ic" aria-hidden="true"
+                                    style="flex: none; width: 36px; height: 36px; border-radius: 999px; border: 1px solid #D3C9B6; display: inline-flex; align-items: center; justify-content: center"><svg
+                                        width="14" height="14" viewBox="0 0 14 14" fill="none">
+                                        <path d="M7 2v10M2 7h10" stroke="#26282C" stroke-width="1.5"
+                                            stroke-linecap="round"></path>
+                                    </svg></span></summary>
+                            <p class="faq-a"
+                                style="padding: 0 52px 24px 0; font-size: 17px; line-height: 1.6; color: #5D5C57">
+                                Öneriyi kabul etmek zorunda değilsin. Her önerinin yanında güven oranı yazar; düşükse
+                                kategoriyi kendin seçer, istersen sonradan değiştirirsin.</p>
+                        </details>
+                        <details style="border-bottom: 1px solid #D3C9B6">
+                            <summary
+                                style="display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 24px 0; font-size: clamp(18px, 1.6vw, 21px); font-weight: 500">
+                                Hangi kategoriler var?<span class="faq-ic" aria-hidden="true"
+                                    style="flex: none; width: 36px; height: 36px; border-radius: 999px; border: 1px solid #D3C9B6; display: inline-flex; align-items: center; justify-content: center"><svg
+                                        width="14" height="14" viewBox="0 0 14 14" fill="none">
+                                        <path d="M7 2v10M2 7h10" stroke="#26282C" stroke-width="1.5"
+                                            stroke-linecap="round"></path>
+                                    </svg></span></summary>
+                            <p class="faq-a"
+                                style="padding: 0 52px 24px 0; font-size: 17px; line-height: 1.6; color: #5D5C57">Yemek,
+                                Ulaşım, Faturalar, Eğlence, Sağlık, Eğitim, Alışveriş ve Diğer.</p>
+                        </details>
+                        <details style="border-bottom: 1px solid #D3C9B6">
+                            <summary
+                                style="display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 24px 0; font-size: clamp(18px, 1.6vw, 21px); font-weight: 500">
+                                Ücretli mi?<span class="faq-ic" aria-hidden="true"
+                                    style="flex: none; width: 36px; height: 36px; border-radius: 999px; border: 1px solid #D3C9B6; display: inline-flex; align-items: center; justify-content: center"><svg
+                                        width="14" height="14" viewBox="0 0 14 14" fill="none">
+                                        <path d="M7 2v10M2 7h10" stroke="#26282C" stroke-width="1.5"
+                                            stroke-linecap="round"></path>
+                                    </svg></span></summary>
+                            <p class="faq-a"
+                                style="padding: 0 52px 24px 0; font-size: 17px; line-height: 1.6; color: #5D5C57">Tamamen ücretsiz.</p>
+                        </details>
+                        <details style="border-bottom: 1px solid #D3C9B6">
+                            <summary
+                                style="display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 24px 0; font-size: clamp(18px, 1.6vw, 21px); font-weight: 500">
+                                Hangi cihazlarda kullanabilirim?<span class="faq-ic" aria-hidden="true"
+                                    style="flex: none; width: 36px; height: 36px; border-radius: 999px; border: 1px solid #D3C9B6; display: inline-flex; align-items: center; justify-content: center"><svg
+                                        width="14" height="14" viewBox="0 0 14 14" fill="none">
+                                        <path d="M7 2v10M2 7h10" stroke="#26282C" stroke-width="1.5"
+                                            stroke-linecap="round"></path>
+                                    </svg></span></summary>
+                            <p class="faq-a"
+                                style="padding: 0 52px 24px 0; font-size: 17px; line-height: 1.6; color: #5D5C57">
+                                Expenza iOS ve Android için geliştirildi, web tarayıcısından da açılabilir. Fiş tarama
+                                yalnızca telefonda çalışır.</p>
+                        </details>
+                    </div>
+                </div>
+            </section>
+
+            <section aria-labelledby="cta-title" style="padding: 0 clamp(8px, 1.2vw, 16px)">
+                <div
+                    style="background: #1F2F57; color: #F7F3EC; border-radius: clamp(24px, 3vw, 36px); padding: clamp(64px, 9vw, 120px) 0">
+                    <div
+                        style="max-width: 1200px; margin: 0 auto; padding: 0 clamp(20px, 4vw, 48px); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 40px 64px">
+                        <div class="sr"
+                            style="flex: 1 1 520px; max-width: 760px; display: flex; flex-direction: column; gap: 20px">
+                            <h2 id="cta-title"
+                                style="font-weight: 400; font-size: clamp(38px, 6vw, 84px); line-height: 1; letter-spacing: -0.03em; text-wrap: balance">
+                                Ay sonu sürpriz olmasın.</h2>
+                            <p style="font-size: 19px; line-height: 1.55; color: #C9CFDC; max-width: 520px">İlk
+                                harcamanı yazdığın anda kategori, bütçe ve tahmin çalışmaya başlar.</p>
+                        </div>
+                        <div class="sr d1" style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px">
+                            <a href="#" class="ex-btn ex-btn-light"
+                                style="display: inline-flex; align-items: center; gap: 10px; height: 54px; padding: 0 28px; border-radius: 999px; background: #F7F3EC; color: #1F2F57; font-size: 16px; font-weight: 500; letter-spacing: 0.01em; text-decoration: none">Hesap
+                                oluştur
+                                <svg class="ex-arrow" width="16" height="16" viewBox="0 0 16 16" fill="none"
+                                    aria-hidden="true">
+                                    <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6"
+                                        stroke-linecap="round" stroke-linejoin="round"></path>
+                                </svg>
+                            </a>
+                            <a href="#" class="ex-link"
+                                style="color: #F7F3EC; font-size: 16px; font-weight: 400; padding: 12px 0">Hesabın var
+                                mı? <span style="font-weight: 600">Giriş yap</span></a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <footer style="max-width: 1200px; margin: 0 auto; padding: clamp(56px, 7vw, 88px) clamp(20px, 4vw, 48px) 40px">
+            <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 40px 64px">
+                <p style="flex: 1 1 260px; max-width: 320px; font-size: 17px; line-height: 1.55; color: #5D5C57">Kişisel
+                    finans takibi ve harcama analizi.</p>
+                <div style="display: flex; flex-wrap: wrap; gap: 32px 72px">
+                    <div style="display: flex; flex-direction: column; gap: 12px; font-size: 16px">
+                        <span
+                            style="font-size: 12px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: #5D5C57">Ürün</span>
+                        <a href="#nasil" class="ex-link" style="color: #26282C">Nasıl çalışır</a>
+                        <a href="#analiz" class="ex-link" style="color: #26282C">Analiz</a>
+                        <a href="#guvenlik" class="ex-link" style="color: #26282C">Güvenlik</a>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 12px; font-size: 16px">
+                        <span
+                            style="font-size: 12px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: #5D5C57">Destek</span>
+                        <a href="#sss" class="ex-link" style="color: #26282C">SSS</a>
+                        <a href="#" class="ex-link" style="color: #26282C">İletişim</a>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 12px; font-size: 16px">
+                        <span
+                            style="font-size: 12px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: #5D5C57">Yasal</span>
+                        <a href="#" class="ex-link" style="color: #26282C">Gizlilik</a>
+                        <a href="#" class="ex-link" style="color: #26282C">Kullanım koşulları</a>
+                    </div>
+                </div>
+            </div>
+            <div class="wm-scope" style="margin-top: clamp(48px, 7vw, 104px); color: #26282C">
+                <svg viewBox="0 0 610 100" fill="none" role="img" aria-label="Expenza"
+                    style="display: block; width: 100%; height: auto; overflow: visible">
+                    <g stroke="currentColor" stroke-width="1.8" stroke-linecap="square" stroke-linejoin="miter">
+                        <path class="wm-p" d="M56 4H2V88H56"></path>
+                        <path class="wm-p" d="M2 46H44"></path>
+                        <path class="wm-p" d="M2 4 32 39" transform="translate(80 0)"></path>
+                        <path class="wm-p" d="M70 4 39 39" transform="translate(80 0)"></path>
+                        <path class="wm-p" d="M39 48 70 88" transform="translate(80 0)"></path>
+                        <path class="wm-p" d="M32 48 2 88" transform="translate(80 0)"></path>
+                        <path class="wm-p" d="M2 88V4H28C68 4 68 47 28 47H2" transform="translate(174 0)"></path>
+                        <path class="wm-p" d="M56 4H2V88H56" transform="translate(266 0)"></path>
+                        <path class="wm-p" d="M2 46H44" transform="translate(266 0)"></path>
+                        <path class="wm-p" d="M2 88V4L66 88V4" transform="translate(348 0)"></path>
+                        <path class="wm-p" d="M2 4H67L2 88H67" transform="translate(440 0)"></path>
+                        <path class="wm-p" d="M2 88 34 4 67 88" transform="translate(532 0)"></path>
+                        <path class="wm-p" d="M14 59H55" transform="translate(532 0)"></path>
+                    </g>
+                </svg>
+            </div>
+            <div
+                style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; margin-top: clamp(32px, 4vw, 48px); padding-top: 24px; border-top: 1px solid #D3C9B6; font-size: 14px; color: #5D5C57">
+                <span>© 2026 Expenza</span>
+            </div>
+        </footer>
+
+        <div class="mobile-cta"
+            style="position: sticky; bottom: 0; z-index: 20; background: #EDE6D9; border-top: 1px solid #D3C9B6; padding: 12px 20px calc(12px + env(safe-area-inset-bottom))">
+            <a href="#" class="ex-btn ex-btn-primary"
+                style="display: flex; align-items: center; justify-content: center; gap: 10px; height: 52px; border-radius: 999px; background: #1F2F57; color: #F7F3EC; font-size: 16px; font-weight: 500; letter-spacing: 0.01em; text-decoration: none">Hesap
+                oluştur</a>
+        </div>
+
+    </div>
+</body>
+
+</html>
