@@ -141,6 +141,7 @@ def detect_anomalies(
             z = (t.amount - mean) / std
             if z >= z_threshold and t.amount > mean:
                 ratio = t.amount / mean if mean else 0
+                times = f"{ratio:.1f}".replace(".", ",")  # Türkçe ondalık virgül
                 anomalies.append({
                     "transaction_id": t.id,
                     "amount": round(t.amount, 2),
@@ -149,8 +150,10 @@ def detect_anomalies(
                     "occurred_on": t.occurred_on.isoformat(),
                     "z_score": round(z, 2),
                     "severity": "high" if z >= 3.5 else "medium",
-                    "reason": f"{cat} kategorisinde ortalamanın {ratio:.1f} katı "
-                              f"(₺{mean:.0f} ort.)",
+                    # Metinde tutar yok: istemci ortalamayı kendi para biriminde
+                    # category_mean alanından gösterir.
+                    "reason": f"{cat} kategorisinde ortalamanın {times} katı",
+                    "category_mean": round(mean, 2),
                 })
 
     anomalies.sort(key=lambda a: a["z_score"], reverse=True)

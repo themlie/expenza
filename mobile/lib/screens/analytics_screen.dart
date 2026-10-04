@@ -597,7 +597,10 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
                         fontWeight: FontWeight.w500,
                         color: AppColors.onSurface)),
                 const SizedBox(height: 3),
-                Text(a.reason,
+                Text(
+                    a.categoryMean > 0
+                        ? '${a.reason} (ort. ${money(a.categoryMean)})'
+                        : a.reason,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(

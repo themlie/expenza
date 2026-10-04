@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import '../api_client.dart';
 import '../theme.dart';
 
+/// Ekrandaki para birimi simgesinin backend'deki kodu.
+const _currencyCodes = {'₺': 'TRY', '\$': 'USD', '€': 'EUR', '£': 'GBP'};
+
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
 
@@ -96,7 +99,12 @@ class _ChatScreenState extends State<ChatScreen> {
     _scrollToBottom();
 
     try {
-      final reply = await ApiClient.instance.sendChatMessage(text);
+      final symbol = currencyNotifier.value;
+      final reply = await ApiClient.instance.sendChatMessage(
+        text,
+        currency: _currencyCodes[symbol] ?? 'TRY',
+        rate: CurrencyService.rates[symbol] ?? 1,
+      );
       if (mounted) {
         setState(() {
           _messages.add(

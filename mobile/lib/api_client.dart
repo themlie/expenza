@@ -489,9 +489,13 @@ class ApiClient {
     await _send(value ? 'POST' : 'DELETE', '/auth/me/ai-consent');
   }
 
-  /// AI Chatbot: Gemini asistanı ile sohbet.
-  Future<String> sendChatMessage(String message) async {
-    final j = await _json('POST', '/chat', body: {'message': message});
+  /// AI Chatbot: Gemini asistanı ile sohbet. [currency] ekranda kullanılan para
+  /// birimi (TRY, USD, EUR, GBP), [rate] 1 TRY'nin o birimdeki karşılığı; asistan
+  /// tutarları bu birimde yazar.
+  Future<String> sendChatMessage(String message,
+      {String currency = 'TRY', double rate = 1}) async {
+    final j = await _json('POST', '/chat',
+        body: {'message': message, 'currency': currency, 'rate': rate});
     return j['reply'] as String;
   }
 

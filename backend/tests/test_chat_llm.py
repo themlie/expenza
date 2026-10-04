@@ -135,3 +135,25 @@ def test_gemini_categorizer_falls_back_to_local_model(monkeypatch):
     monkeypatch.setattr(settings, "categorizer", "gemini")
     monkeypatch.setattr(llm, "generate", lambda *a, **k: "anlamsız cevap")
     assert categorizer.categorize("uber")[2] == "baseline-svm-v1"
+
+
+def test_chat_amounts_follow_client_currency(client, user, add_tx, gemini_on):
+    add_tx(user["headers"], amount=1000, note="market")
+    _consent(client, user)
+
+    client.post("/chat", json={"message": "x"}, headers=user["headers"])
+    assert "1000.00 TRY" in gemini_on[-1]["system"]
+    assert "Türk Lirası" in gemini_on[-1]["system"]
+
+    body = {"message": "x", "currency": "USD", "rate": 0.03}
+    assert client.post("/chat", json=body, headers=user["headers"]).status_code == 200
+    system = gemini_on[-1]["system"]
+    assert "30.00 USD" in system and "ABD Doları" in system
+    assert "₺" not in system.split("Kullanıcının finansal durumu")[1]
+
+    # TRY seçiliyken gönderilen kur yok sayılır; bilinmeyen birim reddedilir.
+    body = {"message": "x", "currency": "TRY", "rate": 5}
+    client.post("/chat", json=body, headers=user["headers"])
+    assert "1000.00 TRY" in gemini_on[-1]["system"]
+    body = {"message": "x", "currency": "JPY", "rate": 4}
+    assert client.post("/chat", json=body, headers=user["headers"]).status_code == 422

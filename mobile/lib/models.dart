@@ -346,6 +346,7 @@ class AnomalyModel {
   final String occurredOn;
   final String severity; // high | medium
   final String reason;
+  final double categoryMean; // TRY; ekranda kullanıcının para biriminde gösterilir
 
   AnomalyModel({
     required this.amount,
@@ -354,6 +355,7 @@ class AnomalyModel {
     required this.occurredOn,
     required this.severity,
     required this.reason,
+    this.categoryMean = 0,
   });
 
   factory AnomalyModel.fromJson(Map<String, dynamic> j) => AnomalyModel(
@@ -363,5 +365,6 @@ class AnomalyModel {
         occurredOn: j['occurred_on'] ?? '',
         severity: j['severity'] ?? 'medium',
         reason: j['reason'] ?? '',
+        categoryMean: (j['category_mean'] as num?)?.toDouble() ?? 0,
       );
 }

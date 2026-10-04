@@ -4,6 +4,8 @@ Kullanıcının son 30 işlemi (notlar dahil), bütçeleri ve hedefleri Google'a
 için açık rıza gerekir (POST /auth/me/ai-consent). Adı gibi gerekmeyen bilgiler
 gönderilmez.
 """
+from typing import Callable, Literal
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
@@ -18,7 +20,7 @@ router = APIRouter(prefix="/chat", tags=["chat"])
 RULES = """Sen Expenza uygulamasının kişisel finans asistanısın.
 Kurallar:
 - Her zaman Türkçe, kibar ve motive edici bir dille yanıt ver; finansal disiplini teşvik et.
-- Tutarları Türk Lirası (₺) olarak yaz.
+- Tutarları {currency} olarak yaz; aşağıdaki veriler zaten bu para biriminde.
 - Düz metin kullan; Markdown işaretleri (**, #) kullanma. Liste gerekirse satır başında "- " kullan.
 - Harcama veya bütçe sorulduğunda aşağıdaki verilere dayanarak yanıt ver; veri yoksa bunu söyle.
 - Kullanıcı bütçesini aşmışsa nazikçe uyar.
@@ -27,15 +29,34 @@ Kurallar:
 """
 
 
+# Tutarlar veritabanında TRY olarak tutulur. İstemci başka bir para birimiyle
+# gösteriyorsa birimi ve kuru (1 TRY = rate birim) gönderir; asistana giden veriler
+# o birime çevrilir, böylece cevaptaki tutarlar ekrandakilerle aynı birimde olur.
+CURRENCIES = {
+    "TRY": "Türk Lirası (₺)",
+    "USD": "ABD Doları ($)",
+    "EUR": "Euro (€)",
+    "GBP": "İngiliz Sterlini (£)",
+}
+
+
 class ChatRequest(BaseModel):
     message: str = Field(min_length=1, max_length=1000)
+    currency: Literal["TRY", "USD", "EUR", "GBP"] = "TRY"
+    rate: float = Field(default=1.0, gt=0, le=100)
 
 
 class ChatResponse(BaseModel):
     reply: str
 
 
-def _financial_context(db: Session, user_id: int) -> str:
+def _money(currency: str, rate: float) -> Callable[[float], str]:
+    if currency == "TRY":
+        rate = 1.0
+    return lambda amount: f"{amount * rate:.2f} {currency}"
+
+
+def _financial_context(db: Session, user_id: int, money: Callable[[float], str]) -> str:
     transactions = (
         db.query(models.Transaction)
         .filter(models.Transaction.user_id == user_id)
@@ -47,14 +68,15 @@ def _financial_context(db: Session, user_id: int) -> str:
     goals = db.query(models.Goal).filter(models.Goal.user_id == user_id).all()
 
     tx_lines = [
-        f"- {t.occurred_on}: {t.type.value.upper()} | {t.category.value} | {t.amount}₺ | Açıklama: {t.note}"
+        f"- {t.occurred_on}: {t.type.value.upper()} | {t.category.value} | {money(t.amount)} | Açıklama: {t.note}"
         for t in transactions
     ] or ["Henüz işlem kaydı yok."]
     budget_lines = [
-        f"- {b.category.value}: Limit {b.monthly_limit}₺" for b in budgets
+        f"- {b.category.value}: Limit {money(b.monthly_limit)}" for b in budgets
     ] or ["Belirlenmiş bir bütçe limiti yok."]
     goal_lines = [
-        f"- {g.title}: Hedef {g.target_amount}₺, Biriken {g.current_amount}₺, "
+        f"- {g.title}: Hedef {money(g.target_amount)}, "
+        f"Biriken {money(g.current_amount)}, "
         f"Hedef Tarihi: {g.deadline or 'Belirtilmedi'}"
         for g in goals
     ] or ["Tanımlanmış bir tasarruf hedefi yok."]
@@ -84,7 +106,9 @@ def chat_with_gemini(
             detail="Sohbet asistanını kullanmak için veri paylaşımına onay vermelisin.",
         )
 
-    system = f"{RULES}\nKullanıcının finansal durumu:\n\n{_financial_context(db, user.id)}"
+    rules = RULES.format(currency=CURRENCIES[payload.currency])
+    context = _financial_context(db, user.id, _money(payload.currency, payload.rate))
+    system = f"{rules}\nKullanıcının finansal durumu:\n\n{context}"
     try:
         reply = llm.generate(payload.message, model=settings.gemini_chat_model, system=system)
     except llm.GeminiError:

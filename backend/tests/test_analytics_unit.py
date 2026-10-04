@@ -48,6 +48,9 @@ def test_outlier_is_flagged():
     anomalies = detect_anomalies(txs)
     assert len(anomalies) == 1
     assert anomalies[0]["amount"] == 500
+    # Tutar metinde değil ayrı alanda: istemci kendi para biriminde gösterir.
+    assert "₺" not in anomalies[0]["reason"]
+    assert anomalies[0]["category_mean"] > 0
 
 
 def test_too_few_samples_are_not_evaluated():

@@ -235,6 +235,7 @@ class AnomalyItem(BaseModel):
     z_score: float
     severity: str      # high | medium
     reason: str
+    category_mean: float
 
 
 class InsightItem(BaseModel):
