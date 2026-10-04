@@ -3,13 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../api_client.dart';
+import '../currency.dart';
 import '../format.dart';
 import '../models.dart';
 import '../theme.dart';
 import '../widgets/circle_button.dart';
+import '../widgets/common.dart';
 import 'alerts_screen.dart';
-import 'goals_screen.dart';
 import 'chat_screen.dart';
+import 'goals_screen.dart';
 
 class _DashData {
   final SummaryModel summary;

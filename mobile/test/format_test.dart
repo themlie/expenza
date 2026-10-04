@@ -2,8 +2,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
+import 'package:expenza_mobile/currency.dart';
 import 'package:expenza_mobile/format.dart';
-import 'package:expenza_mobile/theme.dart';
 
 void main() {
   setUpAll(() => initializeDateFormatting('tr_TR'));

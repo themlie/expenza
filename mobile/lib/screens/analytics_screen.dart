@@ -6,6 +6,7 @@ import '../api_client.dart';
 import '../format.dart';
 import '../models.dart';
 import '../theme.dart';
+import '../widgets/common.dart';
 
 /// Analitik (İP-4): tahmin paneli, harcama trendi (gerçekleşen + tahmin),
 /// harcama hızı, olağandışı harcamalar, en çok harcanan kategoriler.

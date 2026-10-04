@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../api_client.dart';
+import '../currency.dart';
+import '../format.dart';
 import '../models.dart';
 import '../theme.dart';
-import 'account_screen.dart';
-import '../format.dart';
+import '../widgets/common.dart';
 import '../wordmark.dart';
+import 'account_screen.dart';
 
 /// Profil: kullanıcı kartı, finansal içgörüler, ayarlar, çıkış.
 class ProfileScreen extends StatefulWidget {

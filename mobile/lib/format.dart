@@ -4,7 +4,7 @@
 // gösterilir ve girilir. Çevirme yalnızca burada yapılır.
 import 'package:intl/intl.dart';
 
-import 'theme.dart' show CurrencyService, currencyNotifier;
+import 'currency.dart';
 
 export 'categories.dart' show categoryColor, categoryIcon;
 

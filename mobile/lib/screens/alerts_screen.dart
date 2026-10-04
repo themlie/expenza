@@ -5,6 +5,7 @@ import '../api_client.dart';
 import '../format.dart';
 import '../models.dart';
 import '../theme.dart';
+import '../widgets/common.dart';
 
 /// Uyarılar: bütçe, bütçe hızı, hedef, olağandışı harcama ve yaklaşan ödemeler.
 /// Uyarılar backend'de o anki verilerden hesaplanır (GET /alerts). Kaydırarak ya da
