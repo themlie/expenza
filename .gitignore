@@ -26,3 +26,7 @@ claude-skills/
 *.iml
 .DS_Store
 Thumbs.db
+
+# Güvenlik logları (SECURITY_LOG_FILE)
+logs/
+*.log

@@ -3,18 +3,20 @@
 Tek süreçli kurulum için yeterlidir. Birden fazla sunucu süreci çalıştırılırsa her süreç
 kendi sayacını tutar; o durumda Redis gibi paylaşılan bir depo gerekir.
 """
+import logging
 import threading
 import time
 from collections import defaultdict, deque
 
 from fastapi import Depends, HTTPException, Request, status
 
-from . import models
+from . import audit, models
 from .auth import get_current_user
 
 
 class RateLimiter:
-    def __init__(self, limit: int, window_seconds: float):
+    def __init__(self, name: str, limit: int, window_seconds: float):
+        self.name = name
         self.limit = limit
         self.window = window_seconds
         self._hits: dict[str, deque] = defaultdict(deque)
@@ -49,13 +51,15 @@ class RateLimiter:
             self._hits.clear()
 
 
-login_by_ip = RateLimiter(limit=20, window_seconds=60)
+login_by_ip = RateLimiter("login_by_ip", limit=20, window_seconds=60)
 # Aynı e-posta için 15 dakikada 5 hatalı parola: sonrası doğru parolayla da beklemeli.
-login_failures_by_email = RateLimiter(limit=5, window_seconds=15 * 60)
-register_by_ip = RateLimiter(limit=10, window_seconds=60 * 60)
-chat_by_user = RateLimiter(limit=20, window_seconds=60)
-categorize_by_user = RateLimiter(limit=60, window_seconds=60)
-refresh_by_ip = RateLimiter(limit=60, window_seconds=60)
+login_failures_by_email = RateLimiter(
+    "login_failures_by_email", limit=5, window_seconds=15 * 60
+)
+register_by_ip = RateLimiter("register_by_ip", limit=10, window_seconds=60 * 60)
+chat_by_user = RateLimiter("chat_by_user", limit=20, window_seconds=60)
+categorize_by_user = RateLimiter("categorize_by_user", limit=60, window_seconds=60)
+refresh_by_ip = RateLimiter("refresh_by_ip", limit=60, window_seconds=60)
 
 _ALL = (
     login_by_ip,
@@ -85,6 +89,7 @@ def client_ip(request: Request) -> str:
 
 def enforce(limiter: RateLimiter, key: str) -> None:
     if not limiter.hit(key):
+        audit.event("rate_limited", level=logging.WARNING, limiter=limiter.name, key=key)
         raise too_many()
 
 

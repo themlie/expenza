@@ -74,7 +74,7 @@ Kimlik önekleri: `SEC` güvenlik, `HATA` işlev hatası, `ALT` altyapı ve belg
 - [ ] `SEC-17` Android release derlemesi debug anahtarıyla imzalanıyor (`mobile/android/app/build.gradle.kts:32`).
 - [x] `SEC-18` Kullanıcı metni Gemini prompt'una doğrudan ekleniyor (`chat.py:79-110`, `categorizer.py:133-143`). Yapılacak: kullanıcı metnini ayrı ve sınırlı bir bölümde vermek. Düzeltildi: kullanıcı mesajı sistem talimatından ayrı alanda gidiyor (`systemInstruction`), mesaj 1000 karakterle sınırlı ve talimatlar kullanıcı metnindeki komutları uygulamamasını söylüyor.
 - [x] `SEC-20` Backend güvenlik başlığı eklemiyor (en azından `X-Content-Type-Options` ve HTTPS ile HSTS). Yapıldı: `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`; HTTPS isteklerinde HSTS.
-- [ ] `SEC-21` Güvenlik olayları (başarısız giriş, kayıt, silme) loglanmıyor; sadece birkaç `print` var.
+- [x] `SEC-21` Güvenlik olayları (başarısız giriş, kayıt, silme) loglanmıyor; sadece birkaç `print` var. Düzeltildi: `app/audit.py` giriş, başarısız giriş, kilitlenme, kayıt, çıkış, parola değişikliği, hesap silme, yeniden kullanılan yenileme token'ı, AI onayı ve istek sınırı olaylarını `expenza.security` logger'ına tek satır anahtar=değer olarak yazıyor. E-posta açık değil SHA-256 özetiyle yazılıyor; parola ve token yazılmıyor; değerlerdeki satır sonları temizleniyor. `SECURITY_LOG_FILE` tanımlıysa dönüşümlü dosyaya da yazılıyor (`tests/test_audit.py`).
 
 ### Kod kalitesi
 

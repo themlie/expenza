@@ -1,17 +1,20 @@
 """Kayıt, giriş, oturum yenileme ve hesap yönetimi uçları."""
+import logging
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
-from .. import auth, models, ratelimit, schemas, sessions
+from .. import audit, auth, models, ratelimit, schemas, sessions
 from ..database import get_db
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-def _require_password(user: models.User, password: str) -> None:
+def _require_password(
+    user: models.User, password: str, request: Request, action: str
+) -> None:
     """Hassas işlemlerden önce parolayı yeniden sorar.
 
     Hatalı denemeler girişle aynı sayaca yazılır (15 dakikada 5). 401 yerine 400 döner;
@@ -19,9 +22,15 @@ def _require_password(user: models.User, password: str) -> None:
     """
     email_key = user.email.strip().lower()
     if ratelimit.login_failures_by_email.is_limited(email_key):
+        audit.event(
+            "reauth_locked", request, level=logging.WARNING, user_id=user.id, action=action
+        )
         raise ratelimit.too_many()
     if not auth.verify_password(password, user.hashed_password):
         ratelimit.login_failures_by_email.add(email_key)
+        audit.event(
+            "reauth_failed", request, level=logging.WARNING, user_id=user.id, action=action
+        )
         raise HTTPException(status_code=400, detail="Mevcut parola hatalı")
 
 
@@ -32,6 +41,7 @@ def register(
     ratelimit.enforce(ratelimit.register_by_ip, ratelimit.client_ip(request))
     existing = db.query(models.User).filter(models.User.email == payload.email).first()
     if existing:
+        audit.event("register_duplicate", request, email=payload.email)
         raise HTTPException(status_code=400, detail="Bu e-posta zaten kayıtlı")
     user = models.User(
         email=payload.email,
@@ -42,6 +52,7 @@ def register(
     db.add(user)
     db.commit()
     db.refresh(user)
+    audit.event("register", request, user_id=user.id)
     return user
 
 
@@ -55,6 +66,7 @@ def login(
     # OAuth2 form 'username' alanını e-posta olarak kullanıyoruz.
     email_key = form.username.strip().lower()
     if ratelimit.login_failures_by_email.is_limited(email_key):
+        audit.event("login_locked", request, level=logging.WARNING, email=email_key)
         raise ratelimit.too_many()
 
     user = db.query(models.User).filter(models.User.email == form.username).first()
@@ -62,12 +74,20 @@ def login(
     hashed = user.hashed_password if user else auth.DUMMY_PASSWORD_HASH
     if not auth.verify_password(form.password, hashed) or not user:
         ratelimit.login_failures_by_email.add(email_key)
+        audit.event(
+            "login_failed",
+            request,
+            level=logging.WARNING,
+            email=email_key,
+            reason="bad_password" if user else "unknown_email",
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="E-posta veya parola hatalı",
         )
     pair = sessions.issue_tokens(db, user)
     db.commit()
+    audit.event("login", request, user_id=user.id)
     return pair
 
 
@@ -114,6 +134,7 @@ def update_me(
 @router.post("/change-password", response_model=schemas.Token)
 def change_password(
     payload: schemas.PasswordChange,
+    request: Request,
     current: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -122,7 +143,7 @@ def change_password(
     Oturum sürümü arttığı için eski erişim token'ları da hemen geçersiz olur. Bu cihaz
     için yeni bir token çifti döner.
     """
-    _require_password(current, payload.current_password)
+    _require_password(current, payload.current_password, request, "change_password")
     if payload.current_password == payload.new_password:
         raise HTTPException(status_code=400, detail="Yeni parola eskisiyle aynı olamaz")
     current.hashed_password = auth.hash_password(payload.new_password)
@@ -130,17 +151,19 @@ def change_password(
     sessions.revoke_all(db, current.id)
     pair = sessions.issue_tokens(db, current)
     db.commit()
+    audit.event("password_changed", request, user_id=current.id)
     return pair
 
 
 @router.delete("/me", status_code=204)
 def delete_account(
     payload: schemas.AccountDelete,
+    request: Request,
     current: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db),
 ):
     """Hesabı ve kullanıcıya ait bütün verileri kalıcı olarak siler."""
-    _require_password(current, payload.password)
+    _require_password(current, payload.password, request, "delete_account")
     uid = current.id
     # İşlemler serilere bağlı olduğu için önce silinir.
     for model in (
@@ -154,6 +177,7 @@ def delete_account(
         db.query(model).filter(model.user_id == uid).delete(synchronize_session=False)
     db.delete(current)
     db.commit()
+    audit.event("account_deleted", request, user_id=uid)
     return None
 
 
@@ -164,6 +188,7 @@ def give_ai_consent(
     """Sohbet asistanı için verilerin Google Gemini'ye gönderilmesine onay verir."""
     current.ai_consent_at = datetime.now(timezone.utc).replace(tzinfo=None)
     db.commit()
+    audit.event("ai_consent_given", user_id=current.id)
     db.refresh(current)
     return current
 
@@ -175,5 +200,6 @@ def withdraw_ai_consent(
     """Onayı geri çeker; sohbet asistanı tekrar onay verilene kadar kullanılamaz."""
     current.ai_consent_at = None
     db.commit()
+    audit.event("ai_consent_withdrawn", user_id=current.id)
     db.refresh(current)
     return current

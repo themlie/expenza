@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from . import recurring, sessions
+from . import audit, recurring, sessions
 from .config import settings
 from .database import SessionLocal
 from .migrate import upgrade_database
@@ -23,6 +23,7 @@ from .routers import (
 )
 
 log = logging.getLogger(__name__)
+audit.configure()
 
 # Şemayı açılışta en son migration'a getir (backend/migrations).
 upgrade_database()

@@ -7,6 +7,7 @@ girişten türeyen bütün token'lar (aile) iptal edilir. Veritabanında token'�
 değil SHA-256 özeti tutulur; veritabanı sızsa bile token'lar kullanılamaz.
 """
 import hashlib
+import logging
 import secrets
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -15,7 +16,7 @@ from typing import Optional
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from . import auth, models, schemas
+from . import audit, auth, models, schemas
 
 REFRESH_TOKEN_EXPIRE_DAYS = 30
 
@@ -69,6 +70,12 @@ def rotate(db: Session, raw: str) -> schemas.Token:
         # Daha önce kullanılmış token tekrar geldi: çalınmış olabilir.
         _revoke_family(db, token.family_id)
         db.commit()
+        audit.event(
+            "refresh_token_reused",
+            level=logging.WARNING,
+            user_id=token.user_id,
+            family=token.family_id[:8],
+        )
         raise _invalid()
     if token.expires_at <= _now():
         raise _invalid()
@@ -91,6 +98,7 @@ def revoke(db: Session, raw: str) -> None:
     if token is not None:
         _revoke_family(db, token.family_id)
         db.commit()
+        audit.event("logout", user_id=token.user_id)
 
 
 def revoke_all(db: Session, user_id: int) -> None:

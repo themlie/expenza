@@ -37,6 +37,9 @@ class Settings(BaseSettings):
     cors_origin_regex: str = r"http://(localhost|127\.0\.0\.1)(:\d+)?"
     # Yayında kapatılabilir: /docs, /redoc ve /openapi.json.
     docs_enabled: bool = True
+    # Güvenlik olaylarının ayrıca yazılacağı dosya (ör. logs/security.log). Boşsa
+    # yalnızca konsola yazılır.
+    security_log_file: Optional[str] = None
 
 
 settings = Settings()
