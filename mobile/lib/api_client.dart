@@ -181,6 +181,7 @@ class ApiClient {
     sessionEndedReason = reason;
     _token = null;
     _inflight.clear();
+    chatLog.clear();
     session.value = false;
   }
 
@@ -228,6 +229,7 @@ class ApiClient {
     await _storeTokens(jsonDecode(r.body));
     sessionEndedReason = null;
     _inflight.clear(); // önceki hesabın yarım kalan istekleri paylaşılmasın
+    chatLog.clear();
     session.value = true;
   }
 
@@ -489,14 +491,31 @@ class ApiClient {
     await _send(value ? 'POST' : 'DELETE', '/auth/me/ai-consent');
   }
 
+  /// Sohbet geçmişi. Yalnızca bellekte tutulur (cihaza ve sunucuya yazılmaz);
+  /// çıkışta ve oturum düşünce silinir. Asistan önceki mesajları hatırlasın diye
+  /// son [chatHistoryTurns] tur her soruyla birlikte gönderilir.
+  final chatLog = <ChatTurn>[];
+  static const chatHistoryTurns = 20;
+
   /// AI Chatbot: Gemini asistanı ile sohbet. [currency] ekranda kullanılan para
   /// birimi (TRY, USD, EUR, GBP), [rate] 1 TRY'nin o birimdeki karşılığı; asistan
-  /// tutarları bu birimde yazar.
+  /// tutarları bu birimde yazar. Başarılı soru ve cevap [chatLog]'a eklenir.
   Future<String> sendChatMessage(String message,
       {String currency = 'TRY', double rate = 1}) async {
-    final j = await _json('POST', '/chat',
-        body: {'message': message, 'currency': currency, 'rate': rate});
-    return j['reply'] as String;
+    final recent = chatLog.length > chatHistoryTurns
+        ? chatLog.sublist(chatLog.length - chatHistoryTurns)
+        : chatLog;
+    final j = await _json('POST', '/chat', body: {
+      'message': message,
+      'currency': currency,
+      'rate': rate,
+      'history': [for (final t in recent) t.toJson()],
+    });
+    final reply = j['reply'] as String;
+    chatLog
+      ..add(ChatTurn(fromUser: true, text: message))
+      ..add(ChatTurn(fromUser: false, text: reply));
+    return reply;
   }
 
   Exception _err(http.Response r) {

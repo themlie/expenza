@@ -5,7 +5,7 @@ API anahtarı URL'de değil x-goog-api-key başlığında gönderilir; hata ayr�
 istemciye değil sunucu loguna yazılır.
 """
 import logging
-from typing import Optional
+from typing import Optional, Sequence
 
 import httpx
 
@@ -29,9 +29,10 @@ def generate(
     *,
     model: str,
     system: Optional[str] = None,
+    history: Sequence[tuple[str, str]] = (),
     timeout: float = 30.0,
 ) -> str:
-    """Tek turluk istek gönderir ve modelin metin cevabını döndürür.
+    """İstek gönderir ve modelin metin cevabını döndürür.
 
     Kullanıcı metni ile sistem talimatı ayrı alanlarda gider; kullanıcı metni talimatın
     içine yapıştırılmaz.
@@ -39,7 +40,10 @@ def generate(
     if not enabled():
         raise GeminiError("GEMINI_API_KEY tanımlı değil")
 
-    body: dict = {"contents": [{"role": "user", "parts": [{"text": user_text}]}]}
+    # history: önceki turlar, (rol, metin) çiftleri; rol "user" ya da "model".
+    contents = [{"role": role, "parts": [{"text": text}]} for role, text in history]
+    contents.append({"role": "user", "parts": [{"text": user_text}]})
+    body: dict = {"contents": contents}
     if system:
         body["systemInstruction"] = {"parts": [{"text": system}]}
 

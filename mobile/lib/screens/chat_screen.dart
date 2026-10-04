@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../api_client.dart';
+import '../models.dart';
 import '../theme.dart';
 
 /// Ekrandaki para birimi simgesinin backend'deki kodu.
@@ -13,22 +14,15 @@ class ChatScreen extends StatefulWidget {
   State<ChatScreen> createState() => _ChatScreenState();
 }
 
-class _Message {
-  final String text;
-  final bool isUser;
-  final DateTime time;
-
-  _Message({required this.text, required this.isUser, required this.time});
-}
+const _greeting =
+    "Merhaba! Ben Expenza Yapay Zekâ Asistanınız. Harcamalarınız, bütçe limitleriniz ve tasarruf hedeflerinizle ilgili sorularınızı yanıtlayabilirim. Nasıl yardımcı olabilirim?";
 
 class _ChatScreenState extends State<ChatScreen> {
-  final List<_Message> _messages = [
-    _Message(
-      text:
-          "Merhaba! Ben Expenza Yapay Zekâ Asistanınız. Harcamalarınız, bütçe limitleriniz ve tasarruf hedeflerinizle ilgili sorularınızı yanıtlayabilirim. Nasıl yardımcı olabilirim?",
-      isUser: false,
-      time: DateTime.now(),
-    ),
+  // Ekran kapanıp açılınca konuşma kaldığı yerden devam eder (ApiClient.chatLog).
+  // Hata mesajları yalnızca ekranda görünür, asistana geri gönderilmez.
+  final List<ChatTurn> _messages = [
+    ChatTurn(fromUser: false, text: _greeting),
+    ...ApiClient.instance.chatLog,
   ];
 
   final _textController = TextEditingController();
@@ -93,7 +87,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
     _textController.clear();
     setState(() {
-      _messages.add(_Message(text: text, isUser: true, time: DateTime.now()));
+      _messages.add(ChatTurn(fromUser: true, text: text));
       _isLoading = true;
     });
     _scrollToBottom();
@@ -107,9 +101,7 @@ class _ChatScreenState extends State<ChatScreen> {
       );
       if (mounted) {
         setState(() {
-          _messages.add(
-            _Message(text: reply, isUser: false, time: DateTime.now()),
-          );
+          _messages.add(ChatTurn(fromUser: false, text: reply));
         });
       }
     } catch (e) {
@@ -118,12 +110,11 @@ class _ChatScreenState extends State<ChatScreen> {
       if (mounted) {
         setState(() {
           _messages.add(
-            _Message(
+            ChatTurn(
+              fromUser: false,
               text: detail.isNotEmpty
                   ? detail
                   : "Üzgünüm, asistan servisine bağlanırken bir hata oluştu. Lütfen tekrar deneyin.",
-              isUser: false,
-              time: DateTime.now(),
             ),
           );
         });
@@ -136,6 +127,15 @@ class _ChatScreenState extends State<ChatScreen> {
       }
       _scrollToBottom();
     }
+  }
+
+  void _newChat() {
+    ApiClient.instance.chatLog.clear();
+    setState(() {
+      _messages
+        ..clear()
+        ..add(ChatTurn(fromUser: false, text: _greeting));
+    });
   }
 
   @override
@@ -171,6 +171,15 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ],
         ),
+        actions: [
+          if (_consent == true && _messages.length > 1)
+            IconButton(
+              tooltip: 'Yeni sohbet',
+              icon: Icon(Icons.add_comment_outlined,
+                  color: AppColors.onSurfaceVariant),
+              onPressed: _isLoading ? null : _newChat,
+            ),
+        ],
         shape: Border(bottom: BorderSide(color: AppColors.glassBorder)),
       ),
       body: _consent == null
@@ -193,7 +202,9 @@ class _ChatScreenState extends State<ChatScreen> {
         Text(
           'Expenza AI sorularını yanıtlarken Google Gemini hizmetini kullanır. '
           'Bunun için her soruda son 30 işlemin (tutar, kategori, tarih ve not), '
-          'bütçe limitlerin ve tasarruf hedeflerin Google\'a gönderilir. '
+          'bütçe limitlerin, tasarruf hedeflerin ve bu sohbetteki önceki '
+          'mesajların Google\'a gönderilir. Sohbet cihaza ya da sunucuya '
+          'kaydedilmez. '
           'Adın ve e-posta adresin gönderilmez.\n\n'
           'Onayını istediğin zaman Profil > Ayarlar bölümünden geri çekebilirsin.',
           style: TextStyle(
@@ -266,32 +277,32 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  Widget _chatBubble(_Message msg) {
+  Widget _chatBubble(ChatTurn msg) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: Align(
-        alignment: msg.isUser ? Alignment.centerRight : Alignment.centerLeft,
+        alignment: msg.fromUser ? Alignment.centerRight : Alignment.centerLeft,
         child: Container(
           constraints: BoxConstraints(
             maxWidth: MediaQuery.of(context).size.width * 0.78,
           ),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: msg.isUser ? AppColors.primary : AppColors.surface,
+            color: msg.fromUser ? AppColors.primary : AppColors.surface,
             borderRadius: BorderRadius.only(
               topLeft: const Radius.circular(22),
               topRight: const Radius.circular(22),
-              bottomLeft: Radius.circular(msg.isUser ? 22 : 6),
-              bottomRight: Radius.circular(msg.isUser ? 6 : 22),
+              bottomLeft: Radius.circular(msg.fromUser ? 22 : 6),
+              bottomRight: Radius.circular(msg.fromUser ? 6 : 22),
             ),
-            border: msg.isUser
+            border: msg.fromUser
                 ? null
                 : Border.all(color: AppColors.glassBorder),
           ),
           child: Text(
             msg.text,
             style: TextStyle(
-              color: msg.isUser ? AppColors.onPrimary : AppColors.onSurface,
+              color: msg.fromUser ? AppColors.onPrimary : AppColors.onSurface,
               fontSize: 16,
               height: 1.45,
             ),

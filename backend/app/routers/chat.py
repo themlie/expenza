@@ -1,7 +1,7 @@
 """Sohbet asistanı: kullanıcının kendi verisiyle Google Gemini'ye soru sorar.
 
-Kullanıcının son 30 işlemi (notlar dahil), bütçeleri ve hedefleri Google'a gönderildiği
-için açık rıza gerekir (POST /auth/me/ai-consent). Adı gibi gerekmeyen bilgiler
+Kullanıcının son 30 işlemi (notlar dahil), bütçeleri, hedefleri ve aynı sohbetteki önceki
+mesajlar Google'a gönderildiği için açık rıza gerekir (POST /auth/me/ai-consent). Adı gibi gerekmeyen bilgiler
 gönderilmez.
 """
 from typing import Callable, Literal
@@ -40,8 +40,19 @@ CURRENCIES = {
 }
 
 
+# Asistanın önceki mesajları hatırlaması için istemci son turları da gönderir.
+# Konuşma sunucuda saklanmaz; uygulama kapanınca ya da çıkış yapılınca silinir.
+MAX_HISTORY_TURNS = 20
+
+
+class ChatTurn(BaseModel):
+    role: Literal["user", "model"]
+    text: str = Field(min_length=1, max_length=4000)
+
+
 class ChatRequest(BaseModel):
     message: str = Field(min_length=1, max_length=1000)
+    history: list[ChatTurn] = Field(default_factory=list, max_length=MAX_HISTORY_TURNS)
     currency: Literal["TRY", "USD", "EUR", "GBP"] = "TRY"
     rate: float = Field(default=1.0, gt=0, le=100)
 
@@ -110,7 +121,12 @@ def chat_with_gemini(
     context = _financial_context(db, user.id, _money(payload.currency, payload.rate))
     system = f"{rules}\nKullanıcının finansal durumu:\n\n{context}"
     try:
-        reply = llm.generate(payload.message, model=settings.gemini_chat_model, system=system)
+        reply = llm.generate(
+            payload.message,
+            model=settings.gemini_chat_model,
+            system=system,
+            history=[(t.role, t.text) for t in payload.history],
+        )
     except llm.GeminiError:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,

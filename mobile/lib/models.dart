@@ -368,3 +368,19 @@ class AnomalyModel {
         categoryMean: (j['category_mean'] as num?)?.toDouble() ?? 0,
       );
 }
+
+/// Sohbetteki bir mesaj (kullanıcının ya da asistanın).
+class ChatTurn {
+  final bool fromUser;
+  final String text;
+  final DateTime time;
+
+  ChatTurn({required this.fromUser, required this.text, DateTime? time})
+      : time = time ?? DateTime.now();
+
+  // Sunucu tur başına en çok 4000 karakter kabul ediyor; uzun cevaplar kırpılır.
+  Map<String, dynamic> toJson() => {
+        'role': fromUser ? 'user' : 'model',
+        'text': text.length > 4000 ? text.substring(0, 4000) : text,
+      };
+}
